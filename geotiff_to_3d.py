@@ -79,13 +79,6 @@ opts.add_argument('-texture', type = str,
 opts.add_argument('-filter', type = float, nargs=8, default=None,
 	help = 'Four lat & lon pairs (ordered CLOCKWISE) defining a quadrilateral filtering area')
 
-opts.add_argument('-resample', type = float, default=None,
-	help = 'Resample data scaling factor (see also "method")')
-
-opts.add_argument('-method', type = str, default='nearest',
-	choices = ['nearest', 'bilinear', 'cubic'],
-	help = 'Resampling method')
-
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
@@ -98,23 +91,8 @@ args = parser.parse_args()
 import rasterio as rio
 
 geotiff = rio.open(args.gtiff)
-
-if args.resample != None:
-	resampling = rio.enums.Resampling.nearest
-	if args.method == 'bilinear': resampling = rio.enums.Resampling.bilinear
-	elif args.method == 'cubic' : resampling = rio.enums.Resampling.cubic
-
-	out_shape = (geotiff.count,
-		int(geotiff.height*args.resample),
-		int(geotiff.width*args.resample))
-
-	data = geotiff.read(1, out_shape=out_shape, resampling=resampling)
-else:
-	data = geotiff.read(1)
-
+data = geotiff.read(1)
 geotiff.close()
-
-print(data, type(data))
 
 #
 # Calculate / print some informtion from the GeoTiff
