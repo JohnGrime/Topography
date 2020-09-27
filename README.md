@@ -151,6 +151,7 @@ This produces the two image files `combined.raw.png` and `combined.cropped.png`,
 If the tile cache directory `cache` did not exist in the current directory, it was created - and now contains the individual satellite image tiles that were combined into the final images. The tile file names follow the format `tile_[zoom_level]_[y]_[x]` with `y` and `x` denoting the Web Mercator tile coordinates for accessing the U.S. Geological Survey's [tile server](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/).
 
 The resultant `combined.cropped.png` file should look something like this, albeit at far higher resolution:
+
 ![Combined texture for Grand Canyon model](texture.jpg)
 
 __Note:__ for high zoom levels, patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
