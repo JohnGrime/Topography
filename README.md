@@ -10,7 +10,7 @@ The package consists of three scripts:
 
 __Note: all longitudinal coordinates use the international standard of negative values indicating west, and positive values indicating east.__
 
-For example, to create a 3D model of the region of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (90m resolution):
+For example, to create a 3D model of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (`SRTMG3`, 90m resolution) and a satellite imagery zoom setting (Web Mercator) of `13` we would use the following three script invocations:
 
 ```
 $ python3 fetch_topography.py -dem SRTMGL3 -fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
@@ -25,7 +25,7 @@ These operations produce the following model as shown in [MeshLab](https://www.m
 
 ## `fetch_topography.py`
 
-Downloads digital elevation data from the [OpenTopography](https://opentopography.org/) servers, adn saves the results as a GeoTIFF (or optionally in [AAIGrid](https://en.wikipedia.org/wiki/Esri_grid) format).
+Downloads digital elevation data from the [OpenTopography](https://opentopography.org/) servers, and saves the results as a [GeoTIFF](https://earthdata.nasa.gov/esdis/eso/standards-and-references/geotiff) (or optionally in [AAIGrid](https://en.wikipedia.org/wiki/Esri_grid) format).
 
 ### Prerequisites:
 
@@ -75,7 +75,7 @@ This produces the [GeoTIFF](https://earthdata.nasa.gov/esdis/eso/standards-and-r
 
 ## `fetch_tiles.py`
 
-Downloads (and caches) satellite map tile imagery from the [U.S. Geological Survey](https://www.usgs.gov). The local cache directory is checked for existing data before each tile is downloaded.
+Downloads (and caches) satellite map tile imagery from the [U.S. Geological Survey](https://www.usgs.gov). The local tile image cache directory is checked for previously downloaded data before each tile is downloaded.
 
 ### Prerequisites
 
@@ -148,9 +148,9 @@ Done.
 
 This produces the two image files `combined.raw.png` and `combined.cropped.png`, with the former containing all tiles encompassing the specified region, and the latter containing only the pixels that lie in the region itself. Also produced are the files `stdout.txt` and `stderr.txt`, containing a copy of the script's standard output and standard error streams respectively.
 
-If the tile cache directory `cache` did not exist in the current directory, it was created - and contains the individual satellite image tiles that were combined into the final images. The tile file names follow the 
+If the tile cache directory `cache` did not exist in the current directory, it was created - and now contains the individual satellite image tiles that were combined into the final images. The tile file names follow the format `tile_[zoom_level]_[y]_[x]` with `y` and `x` denoting the Web Mercator tile coordinates for accessing the U.S. Geological Survey's [tile server](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/).
 
-Note that for high zoom levels patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
+__Note:__ for high zoom levels, patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
 
 ## `geotiff_to_3d.py`
 
@@ -207,4 +207,4 @@ Writing .obj file...
 Done.
 ```
 
-Here, we apply a scaling of `0.000025` to the elevations in order to avoid the `z` dimension dominating the data utterly; as vertex coordinates in the plane of the model are written as latitude and longitude values (in degrees), we must be careful to ensure that the `z` axis data (in metres) is not wildly larger than the other axes.
+Here, we apply a scaling of `0.000025` to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
