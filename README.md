@@ -8,6 +8,8 @@ The package consists of three scripts:
 - `fetch_tiles.py` : download (and combine) satellite images from the [U.S. Geological Survey](https://www.usgs.gov/) as a 3D model texture
 - `geotiff_to_3d.py` : combine digital elevation and texture data to create a 3D model.
 
+__Note: all longitudinal coordinates use the international standard of negative values indicating west, and positive values indicating east.__
+
 For example, to create a 3D model of the region of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (90m resolution):
 
 ```
