@@ -66,7 +66,7 @@ parser = argparse.ArgumentParser(description='', epilog='')
 opts = parser.add_argument_group('Input options')
 
 opts.add_argument('gtiff',
-	help = 'GeotTiff input file path')
+	help = 'GeotTIFF input file path')
 
 opts = parser.add_argument_group('Output options')
 
