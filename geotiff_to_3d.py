@@ -1,5 +1,8 @@
 import sys, time, argparse
 
+import rasterio
+from rasterio.enums import Resampling
+
 #
 # Check if point M is inside parallelogram defined by points A,B,C,D.
 # https://stackoverflow.com/questions/2752725/finding-whether-a-point-lies-inside-a-rectangle-or-not
@@ -79,6 +82,12 @@ opts.add_argument('-texture', type = str,
 opts.add_argument('-filter', type = float, nargs=8, default=None,
 	help = 'Four lat & lon pairs (ordered CLOCKWISE) defining a quadrilateral filtering area')
 
+opts.add_argument('-resample', type = float, default = None,
+	help = 'Resample data accoring to this proportion (e.g. 0.5 = use half resolution)')
+
+opts.add_argument('-algorithm', type = str, choices = ['cubic', 'bilinear', 'nearest'], default = 'cubic',
+	help = 'Resampling algorithm')
+
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
@@ -88,21 +97,43 @@ args = parser.parse_args()
 # GeoTiff: https://rasterio.readthedocs.io/en/latest/quickstart.html
 #
 
-import rasterio as rio
-
-geotiff = rio.open(args.gtiff)
-data = geotiff.read(1)
-geotiff.close()
-
-#
-# Calculate / print some informtion from the GeoTiff
-#
+geotiff = rasterio.open(args.gtiff)
 
 bnd = geotiff.bounds
 Lx, Ly = bnd.right-bnd.left, bnd.top-bnd.bottom
 
-Nx, Ny = geotiff.meta['width'], geotiff.meta['height']
+Nx, Ny = geotiff.width, geotiff.height
 Rx, Ry = geotiff.res
+
+if args.resample != None:
+
+	algo = Resampling.nearest
+	if args.algorithm == 'bilinear':
+		algo = Resampling.bilinear
+	elif args.algorithm == 'cubic':
+		algo = Resampling.cubic
+
+	s = args.resample
+	out_shape = (geotiff.count, int(geotiff.height*s), int(geotiff.width*s))
+	data = geotiff.read(out_shape=out_shape, resampling=algo)
+	data = data[0] # only use first band
+
+	# Note: actual scaling performed may not exactly match that requested on command line
+	# due to integer row/width values. Update the transform to reflect *actual* scaling,
+	# and not just the scaling that was requested.
+	new_height, new_width = data.shape[0], data.shape[1]
+	scale_w, scale_h = geotiff.width/new_width, geotiff.height/new_height	
+
+	Nx = new_width
+	Ny = new_height
+
+	Rx *= scale_w
+	Ry *= scale_h
+
+else:
+	data = geotiff.read(1) # only use first band
+
+geotiff.close()
 
 min_z, max_z = data.min(), data.max()
 Lz = float(max_z-min_z)
@@ -111,10 +142,13 @@ print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
 print()
-print(f'Bounds: {bnd.left},{bnd.top} -> {bnd.right},{bnd.bottom}')
+print(f'Bounds: {bnd.left},{bnd.bottom} -> {bnd.right},{bnd.top}')
 print(f'Dims: {Nx} x {Ny} ; Resolution: {Rx} x {Ry}')
 print(f'Z range is apparently {min_z} to {max_z}')
 print(f'File contains {geotiff.count} band(s), using first ...')
+
+if args.resample != None:
+	print(f'Resampled to {args.resample} ({args.algorithm}); {geotiff.width}x{geotiff.height} => {Nx}x{Ny}')
 
 # No z scaling specified? Scale to smaller of x or y span
 if args.z_scale == None:
