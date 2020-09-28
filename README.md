@@ -169,7 +169,7 @@ Combine digital elevation data (in the form of a [GeoTIFF](https://earthdata.nas
 
 ```
 $ python3 geotiff_to_3d.py
-usage: geotiff_to_3d.py [-h] [-output OUTPUT] [-z_scale Z_SCALE] [-texture TEXTURE] [-filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER] [-resample RESAMPLE] [-method {nearest,bilinear,cubic}] gtiff
+usage: geotiff_to_3d.py [-h] [-output OUTPUT] [-z_scale Z_SCALE] [-texture TEXTURE] [-filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER] [-resample RESAMPLE] [-algorithm {cubic,bilinear,nearest}] gtiff
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -182,10 +182,10 @@ Output options:
   -z_scale Z_SCALE      Scaling applied to z axis (inferred from other dims if omitted)
   -texture TEXTURE      Texture file (triggers use of texture coords etc in output file)
   -filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER
-                        Four lat & lon pairs (ordered CLOCKWisE) defining a quadrilateral filtering area
-  -resample RESAMPLE    Resample data scaling factor (see also "method")
-  -method {nearest,bilinear,cubic}
-                        Resampling method
+                        Four lat & lon pairs (ordered CLOCKWISE) defining a quadrilateral filtering area
+  -resample RESAMPLE    Resample data accoring to this proportion (e.g. 0.5 = use half resolution)
+  -algorithm {cubic,bilinear,nearest}
+                        Resampling algorithm
 ```
 
 ### Example
