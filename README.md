@@ -175,7 +175,7 @@ optional arguments:
   -h, --help            show this help message and exit
 
 Input options:
-  gtiff                 GeotTiff input file path
+  gtiff                 GeoTiff input file path
 
 Output options:
   -output OUTPUT        Output file prefix
