@@ -77,11 +77,13 @@ This produces the [GeoTIFF](https://earthdata.nasa.gov/esdis/eso/standards-and-r
 
 Downloads (and caches) satellite map tile imagery from the [U.S. Geological Survey](https://www.usgs.gov). The local tile image cache directory is checked for previously downloaded data before each tile is downloaded.
 
+__Note:__ Higher zoom levels indicate greater levels of detail. However, at high zoom levels (e.g., >12) patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
+
 ### Prerequisites
 
 - Python 3
 - [`requests`](https://pypi.org/project/requests/2.7.0/) module (via e.g., `pip3 install requests`)
-- [`Pillow`](https://pypi.org/project/Pillow/)
+- [`Pillow`](https://pypi.org/project/Pillow/) module (via e.g., `pip3 install requests`)
 
 ### Usage
 
@@ -153,8 +155,6 @@ If the tile cache directory `cache` did not exist in the current directory, it w
 The resultant `combined.cropped.png` file should look something like this, albeit at far higher resolution:
 
 ![Combined texture for Grand Canyon model](texture.jpg)
-
-__Note:__ for high zoom levels, patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
 
 ## `geotiff_to_3d.py`
 
