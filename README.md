@@ -83,7 +83,7 @@ __Note:__ Higher zoom levels indicate greater levels of detail. However, at high
 
 - Python 3
 - [`requests`](https://pypi.org/project/requests/2.7.0/) module (via e.g., `pip3 install requests`)
-- [`Pillow`](https://pypi.org/project/Pillow/) module (via e.g., `pip3 install requests`)
+- [`Pillow`](https://pypi.org/project/Pillow/) module (via e.g., `pip3 install pillow`)
 
 ### Usage
 
