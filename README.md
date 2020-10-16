@@ -7,6 +7,7 @@ The package consists of three scripts:
 - `fetch_topography.py` : download digital elevation data for a given latitude and longitude bounding box
 - `fetch_tiles.py` : download (and combine) satellite images from the [U.S. Geological Survey](https://www.usgs.gov/) as a 3D model texture
 - `geotiff_to_3d.py` : combine digital elevation and texture data to create a 3D model.
+- `estimate_spans_from_latlon.py` : estimate dimensions (in metres) of zone enclosed by latidudinal and longitudinal spans
 
 __Note: all longitudinal coordinates use the international standard of negative values indicating west, and positive values indicating east.__
 
@@ -212,3 +213,31 @@ Done.
 ```
 
 Here, we apply a scaling of `0.000025` to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
+
+
+## `estimate_spans_from_latlon.py`
+
+Etimate the span in metres of the region defined by minimum and maximum latitide and longitude. The latitudinal span is independent of longitude, but the longitudinal spans depend on the min and max latitude. For latitude 0 degrees (i.e., the equator), the radius of the circle along which longitudinal values lie is equal to the notional radius of the globe. However, as we increase or decrease the latitude, the radius of this circle shrinks as the notional sphere representing the earth tapers towards the poles.
+
+### Prerequisites:
+
+- Python 3
+
+### Usage
+
+```
+$ python3 estimate_spans_from_latlon.py
+
+Usage: python3 estimate_spans_from_latlon.py lat0 lat1 lon0 lon1
+```
+
+### Example
+
+To determine the spans for the region described by latitude 0 to 1 degrees, and longitude 0 to 1 degrees:
+
+```
+$ python3 estimate_spans_from_latlon.py 0 1 0 1
+lat span: 111194.92664455873, lon span at lat0: 111194.92664455873, lon span at lat1: 111177.99111864607
+```
+
+As can be seen in the output above, the longitudinal spans differ slightly between lat0 (0 degrees) ad lat1 (1 degree).
