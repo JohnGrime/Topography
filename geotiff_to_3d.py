@@ -1,7 +1,11 @@
+# Author: John Grime
+
 import sys, time, argparse
 
 import rasterio
 from rasterio.enums import Resampling
+
+from util import Tee
 
 #
 # Check if point M is inside parallelogram defined by points A,B,C,D.
@@ -18,41 +22,6 @@ def inside_quadrilateral(A, B, C, D, m):
 	D1, D2, D3, D4 =  f(AB,m) + C1,  f(AD,m) + C2,  f(BC,m) + C3,  f(CD,m) + C4
 
 	return (0 >= D1) and (0 >= D4) and (0 <= D2) and (0 >= D3)
-
-#
-# https://stackoverflow.com/questions/616645/how-to-duplicate-sys-stdout-to-a-log-file
-#
-class Tee(object):
-	def __init__(self, name, mode, what='stdout'):
-		self.file = open(name, mode)
-		self.what = what
-
-		if self.what == 'stdout':
-			self.stream = sys.stdout
-			sys.stdout = self
-		elif self.what == 'stderr':
-			self.stream = sys.stderr
-			sys.stderr = self
-			# ensure file is unbuffered?
-		else:
-			print(f'Unknown Tee type "{self.what}"')
-			sys.exit(-1)
-
-	def __del__(self):
-		if self.what == 'stdout':
-			sys.stdout = self.stream
-		elif self.what == 'stderr':
-			sys.stderr = self.stream
-
-		self.file.close()
-
-	def write(self, data):
-		self.file.write(data)
-		self.stream.write(data)
-		if self.what == 'stderr': self.flush()
-
-	def flush(self):
-		self.file.flush()
 
 #
 # Handle command line arguments
