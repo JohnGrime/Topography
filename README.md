@@ -5,7 +5,7 @@ A set of simple Python scripts to download and combine digital elevation data an
 The package consists of three scripts:
 
 - `fetch_topography.py` : download digital elevation data for a given latitude and longitude bounding box
-- `fetch_tiles.py` : download (and combine) satellite images as a 3D model texture
+- `fetch_tiles.py` : download (and combine) satellite image tiles as a 3D model texture
 - `geotiff_to_3d.py` : combine digital elevation and texture data to create a 3D model.
 - `estimate_spans_from_latlon.py` : estimate dimensions (in metres) of zone enclosed by latidudinal and longitudinal spans
 
@@ -156,7 +156,7 @@ Done.
 
 This produces the two image files `combined.raw.png` and `combined.cropped.png`, with the former containing all tiles encompassing the specified region, and the latter containing only the pixels that lie in the region itself. Also produced are the files `stdout.txt` and `stderr.txt`, containing a copy of the script's standard output and standard error streams respectively.
 
-If the tile cache directory `cache` did not exist in the current directory, it was created - and now contains the individual satellite image tiles that were combined into the final images. The tile file names follow the format `tile_[zoom_level]_[y]_[x]` with `y` and `x` denoting the Web Mercator tile coordinates for accessing the U.S. Geological Survey's [tile server](https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/).
+If the tile cache directory `cache` did not exist in the current directory, it was created - and now contains the individual satellite image tiles that were combined into the final images. The tile file names follow the format `tile_[zoom_level]_[y]_[x]` with `y` and `x` denoting the Web Mercator tile coordinates for accessing the tile server.
 
 The resultant `combined.cropped.png` file should look something like this, albeit at far higher resolution:
 
