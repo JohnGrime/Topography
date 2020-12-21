@@ -256,4 +256,4 @@ $ python3 estimate_spans_from_latlon.py 0 1 0 1
 lat span: 111194.92664455873, lon span at lat0: 111194.92664455873, lon span at lat1: 111177.99111864607
 ```
 
-As can be seen in the output above, the longitudinal spans differ slightly between lat0 (0 degrees) ad lat1 (1 degree).
+As can be seen in the output above, the longitudinal spans differ slightly between `lat0` (0 degrees) and `lat1` (1 degree).
