@@ -21,7 +21,7 @@ $ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped
 
 These operations produce the following model as shown in [MeshLab](https://www.meshlab.net/):
 
-![3D model of Grand Canyon](canyon.jpg)
+![3D model of Grand Canyon](images/canyon.jpg)
 
 
 ## `fetch_topography.py`
@@ -171,7 +171,7 @@ If the tile cache directory `cache` did not exist in the current directory, it w
 
 The resultant `combined.cropped.png` file should look something like this, albeit at far higher resolution:
 
-![Combined texture for Grand Canyon model](texture.jpg)
+![Combined texture for Grand Canyon model](images/texture.jpg)
 
 ## `geotiff_to_3d.py`
 
