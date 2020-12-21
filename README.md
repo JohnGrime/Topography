@@ -127,9 +127,9 @@ Tile combination:
 To generate a texture image for the Grand Canyon model shown on this page at zoom level 13 from the USGS satellite data:
 
 ```
-python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+$ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
-Run at: Sun Dec 20 21:44:15 2020
+Run at: Mon Dec 21 13:51:22 2020
 Run as: fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
 Inputs:
@@ -142,12 +142,13 @@ Inputs:
 
 Outputs
 
-  Pixel (y0,y1) => (tile:subpixel,tile:subpixel) : (821364.57,823922.59) => (3208:116,3218:114)
-  Pixel (x0,x1) => (tile:subpixel,tile:subpixel) : (394513.90,396041.91) => (1541:17,1547:9)
+  Pixel y range => (tile:offset,tile:offset) : (821364.57,823922.59) => (3208:116,3218:114)
+  Pixel x range => (tile:offset,tile:offset) : (394513.90,396041.91) => (1541:17,1547:9)
 
 Requires 7 x 11 tile set (77 tiles total)
-Uncropped image is 1792 x 1792 pixels
+Uncropped image is 1792 x 2816 pixels
 Cropped image is 1529 x 2559 pixels (22.46% reduction)
+
 Downloading...
   cache/usgs_13_1541_3209.png : 8/77 (10%)
   cache/usgs_13_1542_3210.png : 16/77 (21%)

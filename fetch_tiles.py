@@ -168,7 +168,7 @@ ny_pix = int(y_pix[1]-y_pix[0])+1
 reduction = 100.0 * (1.0 - (nx_pix*ny_pix)/(nx_tile*tile_size * ny_tile*tile_size))
 
 print(f'Requires {nx_tile} x {ny_tile} tile set ({nx_tile*ny_tile} tiles total)')
-print(f'Uncropped image is {nx_tile*tile_size} x {nx_tile*tile_size} pixels')
+print(f'Uncropped image is {nx_tile*tile_size} x {ny_tile*tile_size} pixels')
 print(f'Cropped image is {nx_pix} x {ny_pix} pixels ({reduction:.2f}% reduction)')
 print()
 print(f'Downloading...')
