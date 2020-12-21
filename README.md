@@ -7,7 +7,7 @@ The package consists of three scripts:
 - `fetch_topography.py` : download digital elevation data for a given latitude and longitude bounding box
 - `fetch_tiles.py` : download (and combine) satellite image tiles as a 3D model texture
 - `geotiff_to_3d.py` : combine digital elevation and texture data to create a 3D model.
-- `estimate_spans_from_latlon.py` : estimate dimensions (in metres) of zone enclosed by latidudinal and longitudinal spans
+- `estimate_spans.py` : estimate interval (in degrees) corresponding to 1m for specified latitude, or dimensions (in metres) of zone enclosed by lat/lon bounding box
 
 __Note: all longitudinal coordinates use the international standard of negative values indicating west, and positive values indicating east.__
 
@@ -232,9 +232,11 @@ Done.
 Here, we apply a scaling of `0.000025` to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
 
 
-## `estimate_spans_from_latlon.py`
+## `estimate_spans.py`
 
-Etimate the span in metres of the region defined by minimum and maximum latitide and longitude. The latitudinal span is independent of longitude, but the longitudinal spans depend on the min and max latitude. For latitude 0 degrees (i.e., the equator), the radius of the circle along which longitudinal values lie is equal to the notional radius of the globe. However, as we increase or decrease the latitude, the radius of this circle shrinks as the notional sphere representing the earth tapers towards the poles.
+Etimate the interval (in degrees) corresponding to 1m for a specified latitude, or the span in metres of the region bounded by minimum and maximum latitide and longitude.
+
+The latitudinal span is independent of longitude, but the longitudinal spans depend on the latitude. For latitude 0 degrees (i.e., the equator), the radius of the circle along which longitudinal values lie is equal to the notional radius of the globe. However, as we increase or decrease the latitude, the radius of this circle shrinks as the notional sphere representing the earth tapers towards the poles.
 
 ### Prerequisites:
 
@@ -243,17 +245,44 @@ Etimate the span in metres of the region defined by minimum and maximum latitide
 ### Usage
 
 ```
-$ python3 estimate_spans_from_latlon.py
+$ python3 estimate_spans.py
 
-Usage: python3 estimate_spans_from_latlon.py lat0 lat1 lon0 lon1
+Usage:
+
+[1]  python3 estimate_spans.py lat_degs
+[2]  python3 estimate_spans.py lat0 lat1 lon0 lon1
+
+Where:
+
+[1] : report estimated lat/lon intervals (degs) corresponding to 1m at specified latitude (degs)
+[2] : report estimated span (m) corresponding to specified bounding box (degs)
+
+
+Usage:
+
+[1]  python3 estimate_spans.py lat_degs
+[2]  python3 estimate_spans.py lat0 lat1 lon0 lon1
+
+Where:
+
+[1] : report estimated lat/lon intervals (degs) corresponding to 1m at specified latitude (degs)
+[2] : report estimated span (m) corresponding to specified bounding box (degs)
 ```
 
-### Example
+### Examples
+
+To determine the interval (in degrees) corresponding to 1m at a latitude of e.g. 34.6 degrees:
+
+```
+$ python3 estimate_spans.py 34.6
+degs lat,lon for 1m @ lat=34.6: 8.993216059187306e-06, 1.0925548187354827e-05
+```
+
 
 To determine the spans for the region described by latitude 0 to 1 degrees, and longitude 0 to 1 degrees:
 
 ```
-$ python3 estimate_spans_from_latlon.py 0 1 0 1
+$ python3 estimate_spans.py 0 1 0 1
 lat span: 111194.92664455873, lon span at lat0: 111194.92664455873, lon span at lat1: 111177.99111864607
 ```
 
