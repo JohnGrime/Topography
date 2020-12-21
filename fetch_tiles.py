@@ -1,4 +1,5 @@
 import sys, math, os, time, argparse, requests
+from util import Tee, WebMercator, stream_to_file
 
 class TileSource:
 
@@ -26,17 +27,17 @@ class TileSource:
 
 		self.info = TileSource.info[name]
 
-	def get_url(self, x, y, zoom):
+	def make_url(self, x, y, zoom):
 		url = self.info['url']
 		p = {'x': x, 'y': y, 'zoom': zoom}
 		return url.format(**p)
 
-	def get_filepath(self, cache_dir, x, y, zoom):
+	def make_filepath(self, cache_dir, x, y, zoom):
 		fpath = f'{self.info["name"]}_{zoom}_{x}_{y}.{self.info["fmt"]}'
 		return os.path.join(cache_dir, fpath)
 
 	def stream_to_file(self, x, y, zoom, out_path, chunk_bytes=512*1024, update_bytes=256*1024):
-		url = self.get_url(x, y, zoom)
+		url = self.make_url(x, y, zoom)
 
 		r = requests.get(url, params={}, stream=True)
 		if r.status_code == 404:
@@ -46,84 +47,8 @@ class TileSource:
 			print()
 			sys.exit(-1)
 
-		with open(out_path, 'wb') as fd:
-			n_chunks, bytes_read, next_update = 0, 0, update_bytes
-			for chunk in r.iter_content(chunk_size=chunk_bytes):
-				fd.write(chunk)
-
-				n_chunks += 1
-				bytes_read += len(chunk)
-				if bytes_read >= next_update:
-					print(f'  Read {n_chunks} chunks, {bytes_read/(1024*1024):.2f} MiB')
-					next_update += update_bytes
-
+		bytes_read = stream_to_file(r, out_path, chunk_bytes, update_bytes)
 		return url, bytes_read
-
-
-
-#
-# https://stackoverflow.com/questions/616645/how-to-duplicate-sys-stdout-to-a-log-file
-#
-class Tee(object):
-	def __init__(self, name, mode, what='stdout'):
-		self.file = open(name, mode)
-		self.what = what
-
-		if self.what == 'stdout':
-			self.stream = sys.stdout
-			sys.stdout = self
-		elif self.what == 'stderr':
-			self.stream = sys.stderr
-			sys.stderr = self
-			# ensure file is unbuffered?
-		else:
-			print(f'Unknown Tee type "{self.what}"')
-			sys.exit(-1)
-
-	def __del__(self):
-		if self.what == 'stdout':
-			sys.stdout = self.stream
-		elif self.what == 'stderr':
-			sys.stderr = self.stream
-
-		self.file.close()
-
-	def write(self, data):
-		self.file.write(data)
-		self.stream.write(data)
-		if self.what == 'stderr': self.flush()
-
-	def flush(self):
-		self.file.flush()
-
-#
-# Web Mercator projection, see:
-# https://en.wikipedia.org/wiki/Web_Mercator_projection
-# https://en.wikipedia.org/wiki/Mercator_projection#Alternative_expressions
-#
-# This projection has problems at the poles; e.g. Google Maps cuts off above
-# and below latitudes of +/- 85.051129.
-#
-# Returns: pixel (x,y) tuple describing the specified point; pixel coords are
-# not neccessarily integers!
-#
-def web_mercator(lat_degs, lon_degs, zoom_level, tile_size):
-	pi, twopi = math.pi, 2.0*math.pi
-	log, tan = math.log, math.tan
-
-	# Latitude and longitude in radians
-	lat, lon = lat_degs * pi/180.0, lon_degs * pi/180.0
-
-	prefactor = float(tile_size)/twopi * (2.0**zoom_level)
-	pix_x = prefactor * (lon + pi)
-	pix_y = prefactor * (pi - log(tan(pi/4 + lat/2)))
-
-	return (pix_x, pix_y)
-
-
-##########################
-# Main code starts here. #
-##########################
 
 #
 # Duplicate stdout/stderr to file, and deal with command line arguments
@@ -180,20 +105,20 @@ if args.lat[0] > args.lat[1]:
 #
 
 tilesrc = TileSource(args.src)
-
 tile_size = tilesrc.info['tile_size']
 
-_x0, _y0 = web_mercator(args.lat[0], args.lon[0], args.zoom, tile_size)
-_x1, _y1 = web_mercator(args.lat[1], args.lon[1], args.zoom, tile_size)
+_x0, _y0 = WebMercator.lonlat_to_pix(args.lon[0], args.lat[0], args.zoom, tile_size)
+_x1, _y1 = WebMercator.lonlat_to_pix(args.lon[1], args.lat[1], args.zoom, tile_size)
 
 x_pix, y_pix   = [_x0, _x1], [_y0, _y1]
 
-# If needed, swap orders to ensure ascending values
+# If needed, swap orders to ensure ascending values. Redundant, but retained.
 if x_pix[0] > x_pix[1]: x_pix.reverse()
 if y_pix[0] > y_pix[1]: y_pix.reverse()
 
+# 'ofs' is pixel offset into tile
 x_tile, y_tile = [int(x/tile_size) for x in x_pix], [int(y/tile_size) for y in y_pix]
-x_sub, y_sub   = [int(x%tile_size) for x in x_pix], [int(y%tile_size) for y in y_pix]
+x_ofs, y_ofs   = [int(x%tile_size) for x in x_pix], [int(y%tile_size) for y in y_pix]
 
 #
 # Give the user some feedback
@@ -213,8 +138,8 @@ print(f'  Tile cache directory : "{args.cache}"')
 print()
 print('Outputs')
 print()
-print(f'  Pixel (y0,y1) => (tile:subpixel,tile:subpixel) : ({y_pix[0]:.2f},{y_pix[1]:.2f}) => ({y_tile[0]}:{y_sub[0]},{y_tile[1]}:{y_sub[1]})')
-print(f'  Pixel (x0,x1) => (tile:subpixel,tile:subpixel) : ({x_pix[0]:.2f},{x_pix[1]:.2f}) => ({x_tile[0]}:{x_sub[0]},{x_tile[1]}:{x_sub[1]})')
+print(f'  Pixel y range => (tile:offset,tile:offset) : ({y_pix[0]:.2f},{y_pix[1]:.2f}) => ({y_tile[0]}:{y_ofs[0]},{y_tile[1]}:{y_ofs[1]})')
+print(f'  Pixel x range => (tile:offset,tile:offset) : ({x_pix[0]:.2f},{x_pix[1]:.2f}) => ({x_tile[0]}:{x_ofs[0]},{x_tile[1]}:{x_ofs[1]})')
 print()
 
 #
@@ -243,6 +168,7 @@ reduction = 100.0 * (1.0 - (nx_pix*ny_pix)/(nx_tile*tile_size * ny_tile*tile_siz
 print(f'Requires {nx_tile} x {ny_tile} tile set ({nx_tile*ny_tile} tiles total)')
 print(f'Uncropped image is {nx_tile*tile_size} x {nx_tile*tile_size} pixels')
 print(f'Cropped image is {nx_pix} x {ny_pix} pixels ({reduction:.2f}% reduction)')
+print()
 print(f'Downloading...')
 
 # Import Python Imaging Library (PIL), Pillow, or equivalent
@@ -256,7 +182,7 @@ for dy in range(ny_tile):
 	for dx in range(nx_tile):
 		x, y = x_tile[0]+dx, y_tile[0]+dy
 		n += 1
-		out_path = tilesrc.get_filepath(args.cache, x, y, args.zoom)
+		out_path = tilesrc.make_filepath(args.cache, x, y, args.zoom)
 
 		# Update user on progress every delta_checkpoint_ percent
 		if ( (100*n)/N > (checkpoint_*delta_checkpoint_) ):
@@ -277,12 +203,11 @@ for dy in range(ny_tile):
 # Use PNG as output format
 if args.combine:
 	print()
-
 	print(f'Saving combined.raw.png ...')
 	combined.save("combined.raw.png");
 
-	x0, y0 = x_sub[0], y_sub[0]
-	x1, y1 = ((nx_tile-1)*tile_size)+x_sub[1], ((ny_tile-1)*tile_size)+y_sub[1]
+	x0, y0 = x_ofs[0], y_ofs[0]
+	x1, y1 = ((nx_tile-1)*tile_size)+x_ofs[1], ((ny_tile-1)*tile_size)+y_ofs[1]
 	
 	print(f'Cropping ...')
 	combined = combined.crop( (x0,y0, x1,y1) )

@@ -1,5 +1,7 @@
 import sys, argparse, requests, time
 
+from util import Tee, stream_to_file
+
 #
 # Example: python3 whatever.py -fmt AAIGrid -dem SRTMGL1 -file output -lon -119.25 -119 -lat 36.5 37
 #
@@ -39,57 +41,6 @@ out_map = {
 		'suffix': 'tiff',
 	},
 }
-
-def stream_to_file(req, path, chunk_bytes=512*1024, update_bytes=256*1024):
-	with open(path, 'wb') as fd:
-		n_chunks, bytes_read, next_update = 0, 0, update_bytes
-		for chunk in req.iter_content(chunk_size=chunk_bytes):
-			fd.write(chunk)
-			n_chunks += 1
-			bytes_read += len(chunk)
-
-			if bytes_read >= next_update:
-				print(f'Read {n_chunks} chunks, {bytes_read/(1024*1024):.2f} MiB')
-				next_update += update_bytes
-
-#
-# https://stackoverflow.com/questions/616645/how-to-duplicate-sys-stdout-to-a-log-file
-#
-class Tee(object):
-	def __init__(self, name, mode, what='stdout'):
-		self.file = open(name, mode)
-		self.what = what
-
-		if self.what == 'stdout':
-			self.stream = sys.stdout
-			sys.stdout = self
-		elif self.what == 'stderr':
-			self.stream = sys.stderr
-			sys.stderr = self
-			# ensure file is unbuffered?
-		else:
-			print(f'Unknown Tee type "{self.what}"')
-			sys.exit(-1)
-
-	def __del__(self):
-		if self.what == 'stdout':
-			sys.stdout = self.stream
-		elif self.what == 'stderr':
-			sys.stderr = self.stream
-
-		self.file.close()
-
-	def write(self, data):
-		self.file.write(data)
-		self.stream.write(data)
-		if self.what == 'stderr': self.flush()
-
-	def flush(self):
-		self.file.flush()
-
-#
-# Command line argument handling
-#
 
 dem_arg_txt = ', '.join([f'{k} = {dem_map[k]["desc"]}' for k in dem_map])
 out_arg_txt = ', '.join([f'{k} = {out_map[k]["desc"]}' for k in out_map])
