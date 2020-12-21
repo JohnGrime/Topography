@@ -1,10 +1,65 @@
 import sys, math, os, time, argparse, requests
 
-#
-# https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer
-# Tile URL: {base_url}/{zoom_level}/{y_tile}/{x_tile}
-#
-base_url = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile'
+class TileSource:
+
+	info = {
+		'usgs': {
+			'name': 'usgs',
+			'url': 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{zoom}/{y}/{x}',
+			'fmt': 'png',
+			'tile_size': [256,256],
+		},
+
+		'google': {
+			'name': 'google',
+			'url': 'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={zoom}',
+			'fmt': 'jpg',
+			'tile_size': [256,256],
+		}
+	}
+
+	def __init__(self, source_name):
+		name = source_name.lower()
+		if name not in TileSource.info:
+			print(f'Unknown image source {source_name}')
+			sys.exit(-1)
+
+		self.info = TileSource.info[name]
+
+	def get_url(self, x, y, zoom):
+		url = self.info['url']
+		p = {'x': x, 'y': y, 'zoom': zoom}
+		return url.format(**p)
+
+	def get_filepath(self, cache_dir, x, y, zoom):
+		fpath = f'{self.info["name"]}_{zoom}_{x}_{y}.{self.info["fmt"]}'
+		return os.path.join(cache_dir, fpath)
+
+	def stream_to_file(self, x, y, zoom, out_path, chunk_bytes=512*1024, update_bytes=256*1024):
+		url = self.get_url(x, y, zoom)
+
+		r = requests.get(url, params={}, stream=True)
+		if r.status_code == 404:
+			print()
+			print(f'{r.url} : not found! Stopping here.')
+			print(r)
+			print()
+			sys.exit(-1)
+
+		with open(out_path, 'wb') as fd:
+			n_chunks, bytes_read, next_update = 0, 0, update_bytes
+			for chunk in r.iter_content(chunk_size=chunk_bytes):
+				fd.write(chunk)
+
+				n_chunks += 1
+				bytes_read += len(chunk)
+				if bytes_read >= next_update:
+					print(f'  Read {n_chunks} chunks, {bytes_read/(1024*1024):.2f} MiB')
+					next_update += update_bytes
+
+		return url, bytes_read
+
+
 
 #
 # https://stackoverflow.com/questions/616645/how-to-duplicate-sys-stdout-to-a-log-file
@@ -65,40 +120,10 @@ def web_mercator(lat_degs, lon_degs, zoom_level):
 
 	return (pix_x, pix_y)
 
-#
-# Stream URL data to a specified file
-#
-def stream_to_file(url, path, chunk_bytes=512*1024, update_bytes=256*1024):
-	r = requests.get(url, params={}, stream=True)
-	if r.status_code == 404:
-		print()
-		print(f'{r.url} : not found! Stopping here.')
-		print(r)
-		print()
-		sys.exit(-1)
-
-	with open(path, 'wb') as fd:
-		n_chunks, bytes_read, next_update = 0, 0, update_bytes
-		for chunk in r.iter_content(chunk_size=chunk_bytes):
-			fd.write(chunk)
-
-			n_chunks += 1
-			bytes_read += len(chunk)
-			if bytes_read >= next_update:
-				print(f'  Read {n_chunks} chunks, {bytes_read/(1024*1024):.2f} MiB')
-				next_update += update_bytes
-
-#
-# For consistent naming of cached files
-#
-def get_tile_filename(zoom_level, x, y):
-	return f'tile_{zoom_level}_{x}_{y}'
-
 
 ##########################
 # Main code starts here. #
 ##########################
-
 
 #
 # Duplicate stdout/stderr to file, and deal with command line arguments
@@ -110,6 +135,10 @@ tee_stderr = Tee('stderr.txt', 'w', 'stderr')
 parser = argparse.ArgumentParser( description='', epilog='' )
 
 opts = parser.add_argument_group('Region of interest')
+
+opts.add_argument('-src', required = True, type = str,
+	help = 'Source of satellite tile data',
+	choices = TileSource.info.keys())
 
 opts.add_argument('-lat', required = True, type = float, nargs = 2,
 	help = 'Min and max latitude in degrees (south pole at -90, north poles at +90)')
@@ -150,7 +179,9 @@ if args.lat[0] > args.lat[1]:
 # and pixel offsets into tiles (x_sub,y_sub).
 #
 
-tile_w, tile_h = 256, 256
+tilesrc = TileSource(args.src)
+
+tile_w, tile_h = tilesrc.info['tile_size']
 
 _x0, _y0 = web_mercator(args.lat[0], args.lon[0], args.zoom)
 _x1, _y1 = web_mercator(args.lat[1], args.lon[1], args.zoom)
@@ -174,6 +205,7 @@ print(f'Run as: {" ".join(sys.argv)}')
 print()
 print('Inputs:')
 print()
+print(f'  Tile source          : {args.src}')
 print(f'  Latitude (degrees)   : {args.lat[0]} to {args.lat[1]}')
 print(f'  Longitude (degrees)  : {args.lon[0]} to {args.lon[1]}')
 print(f'  Zoom level           : {args.zoom}')
@@ -211,7 +243,7 @@ reduction = 100.0 * (1.0 - (nx_pix*ny_pix)/(nx_tile*tile_w * ny_tile*tile_h))
 print(f'Requires {nx_tile} x {ny_tile} tile set ({nx_tile*ny_tile} tiles total)')
 print(f'Uncropped image is {nx_tile*tile_w} x {nx_tile*tile_w} pixels')
 print(f'Cropped image is {nx_pix} x {ny_pix} pixels ({reduction:.2f}% reduction)')
-print()
+print(f'Downloading...')
 
 # Import Python Imaging Library (PIL), Pillow, or equivalent
 if args.combine:
@@ -224,12 +256,11 @@ for dy in range(ny_tile):
 	for dx in range(nx_tile):
 		x, y = x_tile[0]+dx, y_tile[0]+dy
 		n += 1
-		filename = get_tile_filename(args.zoom, x, y)
-		out_path = os.path.join(args.cache, filename + '.png') # assumes tile format is PNG!
+		out_path = tilesrc.get_filepath(args.cache, x, y, args.zoom)
 
 		# Update user on progress every delta_checkpoint_ percent
 		if ( (100*n)/N > (checkpoint_*delta_checkpoint_) ):
-			print(f'  {filename} : {n}/{N} ({(100.0*n)/N:.0f}%)')
+			print(f'  {out_path} : {n}/{N} ({(100.0*n)/N:.0f}%)')
 			checkpoint_ += 1
 
 		if os.path.isfile(out_path):
@@ -237,12 +268,11 @@ for dy in range(ny_tile):
 			pass
 		else:
 			# fetch tile from remote server & save to file cache
-			stream_to_file(f'{base_url}/{args.zoom}/{y}/{x}', out_path)
+			tilesrc.stream_to_file(x, y, args.zoom, out_path)
 
 		if args.combine:
 			img = Image.open(out_path)
 			combined.paste(img, (dx*tile_w, dy*tile_h))
-
 
 # Use PNG as output format
 if args.combine:

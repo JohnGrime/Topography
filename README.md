@@ -76,9 +76,9 @@ This produces the [GeoTIFF](https://earthdata.nasa.gov/esdis/eso/standards-and-r
 
 ## `fetch_tiles.py`
 
-Downloads (and caches) satellite map tile imagery from the [U.S. Geological Survey](https://www.usgs.gov). The local tile image cache directory is checked for previously downloaded data before each tile is downloaded.
+Downloads (and caches) satellite map tile imagery from specified sources. The local tile image cache directory is checked for previously downloaded data before each tile is downloaded.
 
-__Note:__ Higher zoom levels indicate greater levels of detail. However, at high zoom levels (e.g., >12) patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels.
+__Note:__ Higher zoom levels indicate greater levels of detail. However, at high zoom levels (e.g., >12) patches of the satellite data may be missing. If this is the case, reduce the zoom level and try again. Note that higher zoom levels are typically available only inside the boundaries of the U.S.A; other parts of the world may only have satellite data for lower zoom levels. Google typically has higher zoom levels available vs the USGS.
 
 ### Prerequisites
 
@@ -89,36 +89,41 @@ __Note:__ Higher zoom levels indicate greater levels of detail. However, at high
 ### Usage
 
 ```
-$ python3 fetch_tiles.py
-usage: fetch_tiles.py [-h] -lat LAT LAT -lon LON LON -zoom ZOOM [-cache CACHE] [-combine]
+python3 fetch_tiles.py
+usage: fetch_tiles.py [-h] -src {usgs,google} -lat LAT LAT -lon LON LON -zoom
+                       ZOOM [-cache CACHE] [-combine]
 
 optional arguments:
-  -h, --help    show this help message and exit
+  -h, --help          show this help message and exit
 
 Region of interest:
-  -lat LAT LAT  Min and max latitude in degrees (south pole at -90, north poles at +90)
-  -lon LON LON  Min and max longitude in degrees (-180 to +180, positive is east
-  -zoom ZOOM    Zoom level (0 to 23, larger values include more detail)
+  -src {usgs,google}  Source of satellite tile data
+  -lat LAT LAT        Min and max latitude in degrees (south pole at -90,
+                      north poles at +90)
+  -lon LON LON        Min and max longitude in degrees (-180 to +180, positive
+                      is east
+  -zoom ZOOM          Zoom level (0 to 23, larger values include more detail)
 
 Data caching:
-  -cache CACHE  Directory name for cached tile data
+  -cache CACHE        Directory name for cached tile data
 
 Tile combination:
-  -combine      If specified, combine tiled data into single image
+  -combine            If specified, combine tiled data into single image
 ```
 
 ### Example
 
-To generate a texture image for the Grand Canyon model shown on this page at zoom level 13:
+To generate a texture image for the Grand Canyon model shown on this page at zoom level 13 from the USGS satellite data:
 
 ```
-$ python3 fetch_tiles.py -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
-Run at: Sun Sep 27 17:39:51 2020
-Run as: fetch_tiles.py -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+Run at: Sun Dec 20 21:44:15 2020
+Run as: fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
 Inputs:
 
+  Tile source          : usgs
   Latitude (degrees)   : 35.9443 to 36.299
   Longitude (degrees)  : -112.2772 to -112.0149
   Zoom level           : 13
@@ -132,16 +137,16 @@ Outputs
 Requires 7 x 11 tile set (77 tiles total)
 Uncropped image is 1792 x 1792 pixels
 Cropped image is 1529 x 2559 pixels (22.46% reduction)
-
-  tile_13_1541_3209 : 8/77 (10%)
-  tile_13_1542_3210 : 16/77 (21%)
-  tile_13_1543_3211 : 24/77 (31%)
-  tile_13_1543_3212 : 31/77 (40%)
-  tile_13_1544_3213 : 39/77 (51%)
-  tile_13_1545_3214 : 47/77 (61%)
-  tile_13_1545_3215 : 54/77 (70%)
-  tile_13_1546_3216 : 62/77 (81%)
-  tile_13_1547_3217 : 70/77 (91%)
+Downloading...
+  cache/usgs_13_1541_3209.png : 8/77 (10%)
+  cache/usgs_13_1542_3210.png : 16/77 (21%)
+  cache/usgs_13_1543_3211.png : 24/77 (31%)
+  cache/usgs_13_1543_3212.png : 31/77 (40%)
+  cache/usgs_13_1544_3213.png : 39/77 (51%)
+  cache/usgs_13_1545_3214.png : 47/77 (61%)
+  cache/usgs_13_1545_3215.png : 54/77 (70%)
+  cache/usgs_13_1546_3216.png : 62/77 (81%)
+  cache/usgs_13_1547_3217.png : 70/77 (91%)
 
 Saving combined.raw.png ...
 Cropping ...
