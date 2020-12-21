@@ -5,17 +5,17 @@ A set of simple Python scripts to download and combine digital elevation data an
 The package consists of three scripts:
 
 - `fetch_topography.py` : download digital elevation data for a given latitude and longitude bounding box
-- `fetch_tiles.py` : download (and combine) satellite images from the [U.S. Geological Survey](https://www.usgs.gov/) as a 3D model texture
+- `fetch_tiles.py` : download (and combine) satellite images as a 3D model texture
 - `geotiff_to_3d.py` : combine digital elevation and texture data to create a 3D model.
 - `estimate_spans_from_latlon.py` : estimate dimensions (in metres) of zone enclosed by latidudinal and longitudinal spans
 
 __Note: all longitudinal coordinates use the international standard of negative values indicating west, and positive values indicating east.__
 
-For example, to create a 3D model of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (`SRTMG3`, 90m resolution) and a satellite imagery zoom setting (Web Mercator) of `13` we would use the following three script invocations:
+For example, to create a 3D model of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (`SRTMG3`, 90m resolution) and a satellite imagery from the [U.S. Geological Survey](https://www.usgs.gov/) at zoom setting (Web Mercator) of `13` we would use the following three script invocations:
 
 ```
 $ python3 fetch_topography.py -dem SRTMGL3 -fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
-$ python3 fetch_tiles.py -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+$ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
 ```
 
