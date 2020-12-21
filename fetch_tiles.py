@@ -1,3 +1,5 @@
+# Author: John Grime.
+
 import sys, math, os, time, argparse, requests
 from util import Tee, WebMercator, stream_to_file
 

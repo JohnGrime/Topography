@@ -14,7 +14,7 @@ __Note: all longitudinal coordinates use the international standard of negative 
 For example, to create a 3D model of the Grand Canyon between `latitude 35.9443, longitude -112.2772` and `latitude 36.2990, longitude -112.0149` using the `Shuttle Radar Topography Mission GL3` dataset (`SRTMG3`, 90m resolution) and a satellite imagery from the [U.S. Geological Survey](https://www.usgs.gov/) at zoom setting (Web Mercator) of `13` we would use the following three script invocations:
 
 ```
-$ python3 fetch_topography.py -dem SRTMGL3 -fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+$ python3 fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
 ```
@@ -38,20 +38,31 @@ Downloads digital elevation data from the [OpenTopography](https://opentopograph
 
 ```
 $ python3 fetch_topography.py
-usage: fetch_topography.py [-h] -lat LAT LAT -lon LON LON [-dem {SRTMGL1,SRTMGL1_E,SRTMGL3,AW3D30,AW3D30_E}] [-fmt {AAIGrid,GTiff}] [-file FILE]
+usage: fetch_topography.py [-h]
+                           [-src {SRTMGL1,SRTMGL1_E,SRTMGL3,AW3D30,AW3D30_E}]
+                           -lat LAT LAT -lon LON LON
+                           [-out_fmt {AAIGrid,GTiff}] [-file FILE]
 
 optional arguments:
   -h, --help            show this help message and exit
 
 Region of interest:
-  -lat LAT LAT          Min and max latitude in degrees (south pole at -90, north poles at +90)
-  -lon LON LON          Min and max longitude in degrees (-180 to +180, positive is east
+  -src {SRTMGL1,SRTMGL1_E,SRTMGL3,AW3D30,AW3D30_E}
+                        Source DEM data; SRTMGL1 = Shuttle Radar Topography
+                        Mission GL1 (Global 30m), SRTMGL1_E = Shuttle Radar
+                        Topography Mission GL1 ellipsoidal (Global 30m),
+                        SRTMGL3 = Shuttle Radar Topography Mission GL3 (Global
+                        90m), AW3D30 = ALOS World 3D 30m, AW3D30_E = ALOS
+                        World 3D ellipsoidal (30m)
+  -lat LAT LAT          Min and max latitude in degrees (south pole at -90,
+                        north poles at +90)
+  -lon LON LON          Min and max longitude in degrees (-180 to +180,
+                        positive is east
 
 Data sources, formats, etc:
-  -dem {SRTMGL1,SRTMGL1_E,SRTMGL3,AW3D30,AW3D30_E}
-                        Source DEM data; SRTMGL1 = Shuttle Radar Topography Mission GL1 (Global 30m), SRTMGL1_E = Shuttle Radar Topography Mission GL1 ellipsoidal (Global 30m), SRTMGL3 = Shuttle Radar Topography Mission GL3 (Global 90m), AW3D30 = ALOS World 3D 30m,
-                        AW3D30_E = ALOS World 3D ellipsoidal (30m)
-  -fmt {AAIGrid,GTiff}  Output file format; AAIGrid = Arc ASCII Grid, GTiff = GeoTiff
+  -out_fmt {AAIGrid,GTiff}
+                        Output file format; AAIGrid = Arc ASCII Grid, GTiff =
+                        GeoTiff
   -file FILE            Output file path prefix
 ```
 
@@ -60,10 +71,10 @@ Data sources, formats, etc:
 To download the region of the Grand Canyon corresponding to the model shown on this page:
 
 ```
-$ python3 fetch_topography.py -dem SRTMGL3 -fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+$ python3 fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
-Run at: Sun Sep 27 17:50:22 2020
-Run as: fetch_topography.py -dem SRTMGL3 -fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
+Run at: Mon Dec 21 12:27:39 2020
+Run as: fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
 Fetching GeoTiff from Shuttle Radar Topography Mission GL3 (Global 90m) ...
 https://portal.opentopography.org/API/globaldem?demtype=SRTMGL3&west=-112.2772&east=-112.0149&south=35.9443&north=36.299&outputFormat=GTiff => topography.tiff

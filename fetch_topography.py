@@ -1,14 +1,16 @@
+# Author: John Grime.
+
 import sys, argparse, requests, time
 
 from util import Tee, stream_to_file
 
 #
-# Example: python3 whatever.py -fmt AAIGrid -dem SRTMGL1 -file output -lon -119.25 -119 -lat 36.5 37
+# Example: python3 whatever.py -src SRTMGL1 -out_fmt AAIGrid -file output -lon -119.25 -119 -lat 36.5 37
 #
 
 base_url = 'https://portal.opentopography.org/API/globaldem'
 
-dem_map = {
+src_map = {
 	'SRTMGL1': {
 		'desc': 'Shuttle Radar Topography Mission GL1 (Global 30m)',
 	},
@@ -42,7 +44,7 @@ out_map = {
 	},
 }
 
-dem_arg_txt = ', '.join([f'{k} = {dem_map[k]["desc"]}' for k in dem_map])
+src_arg_txt = ', '.join([f'{k} = {src_map[k]["desc"]}' for k in src_map])
 out_arg_txt = ', '.join([f'{k} = {out_map[k]["desc"]}' for k in out_map])
 
 tee_stdout = Tee('stdout.txt', 'w', 'stdout')
@@ -52,6 +54,10 @@ parser = argparse.ArgumentParser( description='', epilog='' )
 
 opts = parser.add_argument_group('Region of interest')
 
+opts.add_argument('-src', required = False, type = str,
+	default = 'SRTMGL1', choices = [k for k in src_map],
+	help = 'Source DEM data; ' + src_arg_txt)
+
 opts.add_argument('-lat', required = True, type = float, nargs = 2,
 	help = 'Min and max latitude in degrees (south pole at -90, north poles at +90)')
 
@@ -60,11 +66,7 @@ opts.add_argument('-lon', required = True, type = float, nargs = 2,
 
 opts = parser.add_argument_group('Data sources, formats, etc')
 
-opts.add_argument('-dem', required = False, type = str,
-	default = 'SRTMGL1', choices = [k for k in dem_map],
-	help = 'Source DEM data; ' + dem_arg_txt)
-
-opts.add_argument('-fmt', required = False, type = str,
+opts.add_argument('-out_fmt', required = False, type = str,
 	default = 'GTiff', choices = [k for k in out_map],
 	help = 'Output file format; ' + out_arg_txt)
 
@@ -90,12 +92,12 @@ if args.lat[0] > args.lat[1]:
 #
 
 r = requests.get(base_url, stream = True, params = {
-	'demtype': args.dem,
+	'demtype': args.src,
 	'west': args.lon[0],
 	'east': args.lon[1],
 	'south': args.lat[0],
 	'north': args.lat[1],
-	'outputFormat': args.fmt,
+	'outputFormat': args.out_fmt,
 	})
 
 if r.status_code == 404:
@@ -106,13 +108,13 @@ if r.status_code == 404:
 	sys.exit(-1)
 
 
-out_path = args.file + '.' + out_map[args.fmt]['suffix']
+out_path = args.file + '.' + out_map[args.out_fmt]['suffix']
 
 print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
 print()
-print(f'Fetching {out_map[args.fmt]["desc"]} from {dem_map[args.dem]["desc"]} ...')
+print(f'Fetching {out_map[args.out_fmt]["desc"]} from {src_map[args.src]["desc"]} ...')
 print(f'{r.url} => {out_path}')
 print()
 
