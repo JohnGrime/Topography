@@ -7,14 +7,14 @@ class TileSource:
 			'name': 'usgs',
 			'url': 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{zoom}/{y}/{x}',
 			'fmt': 'png',
-			'tile_size': [256,256],
+			'tile_size': 256,
 		},
 
 		'google': {
 			'name': 'google',
 			'url': 'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={zoom}',
 			'fmt': 'jpg',
-			'tile_size': [256,256],
+			'tile_size': 256,
 		}
 	}
 
@@ -107,14 +107,14 @@ class Tee(object):
 # Returns: pixel (x,y) tuple describing the specified point; pixel coords are
 # not neccessarily integers!
 #
-def web_mercator(lat_degs, lon_degs, zoom_level):
+def web_mercator(lat_degs, lon_degs, zoom_level, tile_size):
 	pi, twopi = math.pi, 2.0*math.pi
 	log, tan = math.log, math.tan
 
 	# Latitude and longitude in radians
 	lat, lon = lat_degs * pi/180.0, lon_degs * pi/180.0
 
-	prefactor = 256.0/twopi * (2.0**zoom_level)
+	prefactor = float(tile_size)/twopi * (2.0**zoom_level)
 	pix_x = prefactor * (lon + pi)
 	pix_y = prefactor * (pi - log(tan(pi/4 + lat/2)))
 
@@ -181,10 +181,10 @@ if args.lat[0] > args.lat[1]:
 
 tilesrc = TileSource(args.src)
 
-tile_w, tile_h = tilesrc.info['tile_size']
+tile_size = tilesrc.info['tile_size']
 
-_x0, _y0 = web_mercator(args.lat[0], args.lon[0], args.zoom)
-_x1, _y1 = web_mercator(args.lat[1], args.lon[1], args.zoom)
+_x0, _y0 = web_mercator(args.lat[0], args.lon[0], args.zoom, tile_size)
+_x1, _y1 = web_mercator(args.lat[1], args.lon[1], args.zoom, tile_size)
 
 x_pix, y_pix   = [_x0, _x1], [_y0, _y1]
 
@@ -192,8 +192,8 @@ x_pix, y_pix   = [_x0, _x1], [_y0, _y1]
 if x_pix[0] > x_pix[1]: x_pix.reverse()
 if y_pix[0] > y_pix[1]: y_pix.reverse()
 
-x_tile, y_tile = [int(x/tile_w) for x in x_pix], [int(y/tile_h) for y in y_pix]
-x_sub, y_sub   = [int(x%tile_w) for x in x_pix], [int(y%tile_h) for y in y_pix]
+x_tile, y_tile = [int(x/tile_size) for x in x_pix], [int(y/tile_size) for y in y_pix]
+x_sub, y_sub   = [int(x%tile_size) for x in x_pix], [int(y%tile_size) for y in y_pix]
 
 #
 # Give the user some feedback
@@ -238,17 +238,17 @@ ny_tile = (y_tile[1]-y_tile[0]) + 1
 nx_pix = int(x_pix[1]-x_pix[0])+1
 ny_pix = int(y_pix[1]-y_pix[0])+1
 
-reduction = 100.0 * (1.0 - (nx_pix*ny_pix)/(nx_tile*tile_w * ny_tile*tile_h))
+reduction = 100.0 * (1.0 - (nx_pix*ny_pix)/(nx_tile*tile_size * ny_tile*tile_size))
 
 print(f'Requires {nx_tile} x {ny_tile} tile set ({nx_tile*ny_tile} tiles total)')
-print(f'Uncropped image is {nx_tile*tile_w} x {nx_tile*tile_w} pixels')
+print(f'Uncropped image is {nx_tile*tile_size} x {nx_tile*tile_size} pixels')
 print(f'Cropped image is {nx_pix} x {ny_pix} pixels ({reduction:.2f}% reduction)')
 print(f'Downloading...')
 
 # Import Python Imaging Library (PIL), Pillow, or equivalent
 if args.combine:
 	from PIL import Image
-	combined = Image.new("RGB", (nx_tile*tile_w, ny_tile*tile_h))
+	combined = Image.new("RGB", (nx_tile*tile_size, ny_tile*tile_size))
 
 # Download tile sets, combining (if needed) into a single image as we go
 n, N, checkpoint_, delta_checkpoint_ = 0, nx_tile*ny_tile, 1, 10
@@ -272,7 +272,7 @@ for dy in range(ny_tile):
 
 		if args.combine:
 			img = Image.open(out_path)
-			combined.paste(img, (dx*tile_w, dy*tile_h))
+			combined.paste(img, (dx*tile_size, dy*tile_size))
 
 # Use PNG as output format
 if args.combine:
@@ -282,7 +282,7 @@ if args.combine:
 	combined.save("combined.raw.png");
 
 	x0, y0 = x_sub[0], y_sub[0]
-	x1, y1 = ((nx_tile-1)*tile_w)+x_sub[1], ((ny_tile-1)*tile_h)+y_sub[1]
+	x1, y1 = ((nx_tile-1)*tile_size)+x_sub[1], ((ny_tile-1)*tile_size)+y_sub[1]
 	
 	print(f'Cropping ...')
 	combined = combined.crop( (x0,y0, x1,y1) )
