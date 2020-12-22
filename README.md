@@ -120,7 +120,7 @@ Data caching:
 
 Tile combination:
   -combine            If specified, combine tiled data into single image
-  -out_fmt OUT_FMT    Format for combined output image
+  -out_fmt OUT_FMT    Format for combined output image (e.g., "jpeg" or "png")
   ```
 
 ### Example

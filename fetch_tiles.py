@@ -90,7 +90,7 @@ opts.add_argument('-combine', required = False,
 
 opts.add_argument('-out_fmt', required = False, type=str,
 	default = 'jpeg',
-	help = 'Format for combined output image')
+	help = 'Format for combined output image (e.g., "jpeg" or "png")')
 
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
