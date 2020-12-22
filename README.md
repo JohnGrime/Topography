@@ -16,7 +16,7 @@ For example, to create a 3D model of the Grand Canyon between `latitude 35.9443,
 ```
 $ python3 fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
-$ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
+$ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.jpeg -z_scale=0.000025
 ```
 
 These operations produce the following model as shown in [MeshLab](https://www.meshlab.net/):
@@ -100,9 +100,9 @@ __Note:__ Higher zoom levels indicate greater levels of detail. However, at high
 ### Usage
 
 ```
-python3 fetch_tiles.py
+$ python3 fetch_tiles.py
 usage: fetch_tiles.py [-h] -src {usgs,google} -lat LAT LAT -lon LON LON -zoom
-                       ZOOM [-cache CACHE] [-combine]
+                      ZOOM [-cache CACHE] [-combine] [-out_fmt OUT_FMT]
 
 optional arguments:
   -h, --help          show this help message and exit
@@ -120,7 +120,8 @@ Data caching:
 
 Tile combination:
   -combine            If specified, combine tiled data into single image
-```
+  -out_fmt OUT_FMT    Format for combined output image
+  ```
 
 ### Example
 
@@ -129,7 +130,7 @@ To generate a texture image for the Grand Canyon model shown on this page at zoo
 ```
 $ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
-Run at: Mon Dec 21 13:51:22 2020
+Run at: Mon Dec 21 18:34:30 2020
 Run as: fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 
 Inputs:
@@ -160,17 +161,17 @@ Downloading...
   cache/usgs_13_1546_3216.png : 62/77 (81%)
   cache/usgs_13_1547_3217.png : 70/77 (91%)
 
-Saving combined.raw.png ...
+Saving combined.raw.jpeg ...
 Cropping ...
-Saving combined.cropped.png ...
+Saving combined.cropped.jpeg ...
 Done.
 ```
 
-This produces the two image files `combined.raw.png` and `combined.cropped.png`, with the former containing all tiles encompassing the specified region, and the latter containing only the pixels that lie in the region itself. Also produced are the files `stdout.txt` and `stderr.txt`, containing a copy of the script's standard output and standard error streams respectively.
+This produces the two image files `combined.raw.jpeg` and `combined.cropped.jpeg`, with the former containing all tiles encompassing the specified region, and the latter containing only the pixels that lie in the region itself. Also produced are the files `stdout.txt` and `stderr.txt`, containing a copy of the script's standard output and standard error streams respectively.
 
 If the tile cache directory `cache` did not exist in the current directory, it was created - and now contains the individual satellite image tiles that were combined into the final images. The tile file names follow the format `tile_[zoom_level]_[y]_[x]` with `y` and `x` denoting the Web Mercator tile coordinates for accessing the tile server.
 
-The resultant `combined.cropped.png` file should look something like this, albeit at far higher resolution:
+The resultant `combined.cropped.jpeg` file should look something like this, albeit at far higher resolution:
 
 ![Combined texture for Grand Canyon model](images/texture.jpg)
 
