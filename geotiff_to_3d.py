@@ -57,6 +57,15 @@ opts.add_argument('-resample', type = float, default = None,
 opts.add_argument('-algorithm', type = str, choices = ['cubic', 'bilinear', 'nearest'], default = 'cubic',
 	help = 'Resampling algorithm')
 
+opts.add_argument('-x0', type = float, required = False, default = 0.0,
+	help = 'Make x coords relative to this value')
+
+opts.add_argument('-y0', type = float, required = False, default = 0.0,
+	help = 'Make y coords relative to this value')
+
+opts.add_argument('-z0', type = float, required = False, default = 0.0,
+	help = 'Make z coords relative to this value')
+
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
@@ -185,19 +194,22 @@ if args.texture != None:
 
 # Vertex positions
 print('  vertex positions...')
+x0, y0, z0 = args.x0, args.y0, args.z0
 if filtered != None:
 	for (row,col) in filtered:
 		y = top - row*Ry
 		x = left + col*Rx
 		z = (data[row][col] - min_z) * z_scale # relative to lowest z point in data
-		print(f'v {x:.6f} {y:.6f} {z:.6f}', file=f)
+		x_, y_, z_ = x-x0, y-y0, z-z0
+		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 else:
 	for row in range(0, Ny):
 		y = top - row*Ry
 		for col in range(0, Nx):
 			x = left + col*Rx
 			z = (data[row][col] - min_z) * z_scale # relative to lowest z point in data
-			print(f'v {x:.6f} {y:.6f} {z:.6f}', file=f)
+			x_, y_, z_ = x-x0, y-y0, z-z0
+			print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 
 # Vertex texture coords, if needed
 if args.texture != None:

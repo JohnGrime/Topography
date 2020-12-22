@@ -188,23 +188,36 @@ Combine digital elevation data (in the form of a [GeoTIFF](https://earthdata.nas
 
 ```
 $ python3 geotiff_to_3d.py
-usage: geotiff_to_3d.py [-h] [-output OUTPUT] [-z_scale Z_SCALE] [-texture TEXTURE] [-filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER] [-resample RESAMPLE] [-algorithm {cubic,bilinear,nearest}] gtiff
+usage: geotiff_to_3d.py [-h] [-output OUTPUT] [-z_scale Z_SCALE]
+                        [-texture TEXTURE]
+                        [-filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER]
+                        [-resample RESAMPLE]
+                        [-algorithm {cubic,bilinear,nearest}] [-x0 X0]
+                        [-y0 Y0] [-z0 Z0]
+                        gtiff
 
 optional arguments:
   -h, --help            show this help message and exit
 
 Input options:
-  gtiff                 GeoTIFF input file path
+  gtiff                 GeotTIFF input file path
 
 Output options:
   -output OUTPUT        Output file prefix
-  -z_scale Z_SCALE      Scaling applied to z axis (inferred from other dims if omitted)
-  -texture TEXTURE      Texture file (triggers use of texture coords etc in output file)
+  -z_scale Z_SCALE      Scaling applied to z axis (inferred from other dims if
+                        omitted)
+  -texture TEXTURE      Texture file (triggers use of texture coords etc in
+                        output file)
   -filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER
-                        Four lat & lon pairs (ordered CLOCKWISE) defining a quadrilateral filtering area
-  -resample RESAMPLE    Resample data accoring to this proportion (e.g. 0.5 = use half resolution)
+                        Four lat & lon pairs (ordered CLOCKWISE) defining a
+                        quadrilateral filtering area
+  -resample RESAMPLE    Resample data accoring to this proportion (e.g. 0.5 =
+                        use half resolution)
   -algorithm {cubic,bilinear,nearest}
                         Resampling algorithm
+  -x0 X0                Make x coords relative to this value
+  -y0 Y0                Make y coords relative to this value
+  -z0 Z0                Make z coords relative to this value
 ```
 
 ### Example
