@@ -88,6 +88,10 @@ opts.add_argument('-combine', required = False,
 	action = 'store_true',
 	help = 'If specified, combine tiled data into single image')
 
+opts.add_argument('-out_fmt', required = False, type=str,
+	default = 'jpeg',
+	help = 'Format for combined output image')
+
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
@@ -202,11 +206,12 @@ for dy in range(ny_tile):
 			img = Image.open(out_path)
 			combined.paste(img, (dx*tile_size, dy*tile_size))
 
-# Use PNG as output format
+# Use PNG as output format?
 if args.combine:
+	fmt = args.out_fmt
 	print()
-	print(f'Saving combined.raw.png ...')
-	combined.save("combined.raw.png");
+	print(f'Saving combined.raw.{fmt} ...')
+	combined.save(f'combined.raw.{fmt}');
 
 	x0, y0 = x_ofs[0], y_ofs[0]
 	x1, y1 = ((nx_tile-1)*tile_size)+x_ofs[1], ((ny_tile-1)*tile_size)+y_ofs[1]
@@ -214,7 +219,7 @@ if args.combine:
 	print(f'Cropping ...')
 	combined = combined.crop( (x0,y0, x1,y1) )
 
-	print(f'Saving combined.cropped.png ...')
-	combined.save("combined.cropped.png");
+	print(f'Saving combined.cropped.{fmt} ...')
+	combined.save(f'combined.cropped.{fmt}');
 
 print('Done.')

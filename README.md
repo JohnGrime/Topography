@@ -250,23 +250,14 @@ $ python3 estimate_spans.py
 Usage:
 
 [1]  python3 estimate_spans.py lat_degs
-[2]  python3 estimate_spans.py lat0 lat1 lon0 lon1
+[2]  python3 estimate_spans.py to_deg lat_degs lon_degs lat_span_m lon_span_m
+[3]  python3 estimate_spans.py to_m lat0 lat1 lon0 lon1
 
 Where:
 
 [1] : report estimated lat/lon intervals (degs) corresponding to 1m at specified latitude (degs)
 [2] : report estimated span (m) corresponding to specified bounding box (degs)
-
-
-Usage:
-
-[1]  python3 estimate_spans.py lat_degs
-[2]  python3 estimate_spans.py lat0 lat1 lon0 lon1
-
-Where:
-
-[1] : report estimated lat/lon intervals (degs) corresponding to 1m at specified latitude (degs)
-[2] : report estimated span (m) corresponding to specified bounding box (degs)
+[3] : report estimated lat/lon intervals (degs) corresponding to span_m around specified latitude (degs)
 ```
 
 ### Examples
@@ -282,8 +273,15 @@ degs lat,lon for 1m @ lat=34.6: 8.993216059187306e-06, 1.0925548187354827e-05
 To determine the spans for the region described by latitude 0 to 1 degrees, and longitude 0 to 1 degrees:
 
 ```
-$ python3 estimate_spans.py 0 1 0 1
+$ python3 estimate_spans.py to_m 0 1 0 1
 lat span: 111194.92664455873, lon span at lat0: 111194.92664455873, lon span at lat1: 111177.99111864607
 ```
 
 As can be seen in the output above, the longitudinal spans differ slightly between `lat0` (0 degrees) and `lat1` (1 degree).
+
+To determine the latitude and longitude that bound a region of 1500 x 500 m around the point lat = 35 lon = -107:
+
+```
+$ python3 estimate_spans.py to_deg 35 -107 1500 500
+-lat 34.99325508795561 35.00674491204439 -lon -107.00274467240908 -106.99725532759092
+```
