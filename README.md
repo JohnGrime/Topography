@@ -185,7 +185,7 @@ Combine digital elevation data (in the form of a [GeoTIFF](https://earthdata.nas
 - [`rasterio`](https://pypi.org/project/rasterio/0.13.2/) module (via e.g., `pip3 install rasterio`)
 - [`scipy`](https://www.scipy.org/) module (via e.g., `pip3 install scipy`)
 
-The GeoTIFF processing technically requires ['numpy'](https://numpy.org/), but this should be installed automatically by the 'rasterio' module.
+The GeoTIFF processing technically requires [`numpy`](https://numpy.org/), but this should be installed automatically by the 'rasterio' module.
 
 ### Usage
 
