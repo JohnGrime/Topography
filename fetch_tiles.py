@@ -206,7 +206,7 @@ for dy in range(ny_tile):
 			img = Image.open(out_path)
 			combined.paste(img, (dx*tile_size, dy*tile_size))
 
-# Use PNG as output format?
+# Write combined single image texture
 if args.combine:
 	fmt = args.out_fmt
 	print()
@@ -221,5 +221,57 @@ if args.combine:
 
 	print(f'Saving combined.cropped.{fmt} ...')
 	combined.save(f'combined.cropped.{fmt}');
+
+	#
+	# write simple, flat obj file for testing; two triangles.
+	#
+
+	# Material file
+	texturepath = f'combined.cropped.{fmt}'
+	materialpath = 'flat.mtl'
+	f = open(materialpath, 'w')
+	print('newmtl Default', file=f)
+	print('  Ka 1.0 1.0 1.0', file=f) # ambient color
+	print('  Kd 1.0 1.0 1.0', file=f) # diffuse color
+	print('  Ks 0.0 0.0 0.0', file=f) # specular color
+	print('   d 1.0', file=f)  # "dissolved" == opacity
+	print('  Ni 1.0', file=f)  # optical density
+	print('  illum 2', file=f) # illumination model
+	print(f'  map_Ka {texturepath}', file=f) # ambient texture
+	print(f'  map_Kd {texturepath}', file=f) # diffuse texture
+	print(f'  map_Ks {texturepath}', file=f) # specular texture
+	print(f'  map_Ns {texturepath}', file=f) # specular highlight texture
+	f.close()
+
+	# Obj file
+	#
+	# 1 - 2
+	# | \ | : 1,2,4 : 1,4,3
+	# 3 - 4
+	#
+	v1 = [args.lon[0], args.lat[1], 0]
+	v2 = [args.lon[1], args.lat[1], 0]
+	v3 = [args.lon[0], args.lat[0], 0]
+	v4 = [args.lon[1], args.lat[0], 0]
+
+	f1, f2 = [1,4,2], [1,3,4]
+
+	f = open('flat.obj', 'w')
+	print(f'mtllib {materialpath}', file=f)
+	print(f'usemtl Default', file=f)
+
+	print(f'v {v1[0]:.6f} {v1[1]:.6f} {v1[2]:.6f}', file=f)
+	print(f'v {v2[0]:.6f} {v2[1]:.6f} {v2[2]:.6f}', file=f)
+	print(f'v {v3[0]:.6f} {v3[1]:.6f} {v3[2]:.6f}', file=f)
+	print(f'v {v4[0]:.6f} {v4[1]:.6f} {v4[2]:.6f}', file=f)
+
+	print(f'vt {0.0:.6f} {1.0:.6f}', file=f)
+	print(f'vt {1.0:.6f} {1.0:.6f}', file=f)
+	print(f'vt {0.0:.6f} {0.0:.6f}', file=f)
+	print(f'vt {1.0:.6f} {0.0:.6f}', file=f)
+
+	print(f'f {" ".join([f"{idx}/{idx}" for idx in f1])}', file=f)
+	print(f'f {" ".join([f"{idx}/{idx}" for idx in f2])}', file=f)
+	f.close()
 
 print('Done.')

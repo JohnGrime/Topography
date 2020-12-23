@@ -4,48 +4,62 @@ import sys, argparse, requests, time
 
 from util import Tee, stream_to_file
 
+#class GeoTiffDownloader:
 #
-# Example: python3 whatever.py -src SRTMGL1 -out_fmt AAIGrid -file output -lon -119.25 -119 -lat 36.5 37
+#	base_url = 'https://portal.opentopography.org/API/globaldem'
 #
+#	sources = {
+#		'SRTMGL1': {
+#			'desc': 'Shuttle Radar Topography Mission GL1 (Global 30m)',
+#		},
+#
+#		'SRTMGL1_E': {
+#			'desc': 'Shuttle Radar Topography Mission GL1 ellipsoidal (Global 30m)',
+#		},
+#
+#		'SRTMGL3': {
+#			'desc': 'Shuttle Radar Topography Mission GL3 (Global 90m)',
+#		},
+#
+#		'AW3D30': {
+#			'desc': 'ALOS World 3D 30m',
+#		},
+#
+#		'AW3D30_E': {
+#			'desc': 'ALOS World 3D ellipsoidal (30m)',
+#		},
+#	}
+#
+#	outputs = {
+#		'AAIGrid': {
+#			'desc': 'Arc ASCII Grid',
+#			'suffix': 'asc',
+#		},
+#
+#		'GTiff': {
+#			'desc': 'GeoTiff',
+#			'suffix': 'tiff',
+#		},
+#	}
+#
+#	@staticmethod
+#	def get_request(src: str, lat0: float, lon0: float, lat1: float, lon1: float, out_fmt: str):
+#		return requests.get(GeoTiffDownloader.base_url, stream = True, params = {
+#			'demtype': src,
+#			'west': lon0,
+#			'east': lon1,
+#			'south': lat0,
+#			'north': lat1,
+#			'outputFormat': out_fmt,
+#			})
 
-base_url = 'https://portal.opentopography.org/API/globaldem'
+import geotiff
 
-src_map = {
-	'SRTMGL1': {
-		'desc': 'Shuttle Radar Topography Mission GL1 (Global 30m)',
-	},
+sources = geotiff.Downloader.sources
+outputs = geotiff.Downloader.outputs
 
-	'SRTMGL1_E': {
-		'desc': 'Shuttle Radar Topography Mission GL1 ellipsoidal (Global 30m)',
-	},
-
-	'SRTMGL3': {
-		'desc': 'Shuttle Radar Topography Mission GL3 (Global 90m)',
-	},
-
-	'AW3D30': {
-		'desc': 'ALOS World 3D 30m',
-	},
-
-	'AW3D30_E': {
-		'desc': 'ALOS World 3D ellipsoidal (30m)',
-	},
-}
-
-out_map = {
-	'AAIGrid': {
-		'desc': 'Arc ASCII Grid',
-		'suffix': 'asc',
-	},
-
-	'GTiff': {
-		'desc': 'GeoTiff',
-		'suffix': 'tiff',
-	},
-}
-
-src_arg_txt = ', '.join([f'{k} = {src_map[k]["desc"]}' for k in src_map])
-out_arg_txt = ', '.join([f'{k} = {out_map[k]["desc"]}' for k in out_map])
+src_arg_txt = ', '.join([f'{k} = {sources[k]["desc"]}' for k in sources])
+out_arg_txt = ', '.join([f'{k} = {outputs[k]["desc"]}' for k in outputs])
 
 tee_stdout = Tee('stdout.txt', 'w', 'stdout')
 tee_stderr = Tee('stderr.txt', 'w', 'stderr')
@@ -55,7 +69,7 @@ parser = argparse.ArgumentParser( description='', epilog='' )
 opts = parser.add_argument_group('Region of interest')
 
 opts.add_argument('-src', required = False, type = str,
-	default = 'SRTMGL1', choices = [k for k in src_map],
+	default = 'SRTMGL1', choices = [k for k in sources],
 	help = 'Source DEM data; ' + src_arg_txt)
 
 opts.add_argument('-lat', required = True, type = float, nargs = 2,
@@ -67,7 +81,7 @@ opts.add_argument('-lon', required = True, type = float, nargs = 2,
 opts = parser.add_argument_group('Data sources, formats, etc')
 
 opts.add_argument('-out_fmt', required = False, type = str,
-	default = 'GTiff', choices = [k for k in out_map],
+	default = 'GTiff', choices = [k for k in outputs],
 	help = 'Output file format; ' + out_arg_txt)
 
 opts.add_argument('-file', required = False, type = str,
@@ -91,14 +105,10 @@ if args.lat[0] > args.lat[1]:
 # Fetch elevation data
 #
 
-r = requests.get(base_url, stream = True, params = {
-	'demtype': args.src,
-	'west': args.lon[0],
-	'east': args.lon[1],
-	'south': args.lat[0],
-	'north': args.lat[1],
-	'outputFormat': args.out_fmt,
-	})
+r = geotiff.Downloader.get_request(args.src,
+	args.lat[0], args.lon[0],
+	args.lat[1], args.lon[1],
+	args.out_fmt)
 
 if r.status_code == 404:
 	print()
@@ -108,13 +118,13 @@ if r.status_code == 404:
 	sys.exit(-1)
 
 
-out_path = args.file + '.' + out_map[args.out_fmt]['suffix']
+out_path = args.file + '.' + outputs[args.out_fmt]['suffix']
 
 print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
 print()
-print(f'Fetching {out_map[args.out_fmt]["desc"]} from {src_map[args.src]["desc"]} ...')
+print(f'Fetching {outputs[args.out_fmt]["desc"]} from {sources[args.src]["desc"]} ...')
 print(f'{r.url} => {out_path}')
 print()
 
