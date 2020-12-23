@@ -55,6 +55,8 @@ class Downloader:
 class Interpolator:
 
 	def __init__(self, fpath: str, scale: float = None, how: str = 'cubic'):
+		# Only require these modules if we actually need them; the geotiff downloader
+		# class does not, but the interpolator does.
 		import rasterio
 		import numpy as np
 		from scipy import ndimage
