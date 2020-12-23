@@ -2,10 +2,8 @@
 
 import sys, time, argparse
 
-import rasterio
-from rasterio.enums import Resampling
-
 from util import Tee
+import geotiff
 
 #
 # Check if point M is inside parallelogram defined by points A,B,C,D.
@@ -71,66 +69,29 @@ if len(sys.argv)<2:
 
 args = parser.parse_args()
 
-#
-# GeoTiff: https://rasterio.readthedocs.io/en/latest/quickstart.html
-#
-
-geotiff = rasterio.open(args.gtiff)
-
-bnd = geotiff.bounds
-Lx, Ly = bnd.right-bnd.left, bnd.top-bnd.bottom
-
-Nx, Ny = geotiff.width, geotiff.height
-Rx, Ry = geotiff.res
-
 if args.resample != None:
-
-	algo = Resampling.nearest
-	if args.algorithm == 'bilinear':
-		algo = Resampling.bilinear
-	elif args.algorithm == 'cubic':
-		algo = Resampling.cubic
-
-	s = args.resample
-	out_shape = (geotiff.count, int(geotiff.height*s), int(geotiff.width*s))
-	data = geotiff.read(out_shape=out_shape, resampling=algo)
-	data = data[0] # only use first band
-
-	# Note: actual scaling performed may not exactly match that requested on command line
-	# due to integer row/width values. Update the transform to reflect *actual* scaling,
-	# and not just the scaling that was requested.
-	new_height, new_width = data.shape[0], data.shape[1]
-	scale_w, scale_h = geotiff.width/new_width, geotiff.height/new_height	
-
-	Nx = new_width
-	Ny = new_height
-
-	Rx *= scale_w
-	Ry *= scale_h
-
+	gti = geotiff.Interpolator(args.gtiff, scale=args.resample, algorithm=args.algorithm)
 else:
-	data = geotiff.read(1) # only use first band
+	gti = geotiff.Interpolator(args.gtiff)
 
-geotiff.close()
-
-min_z, max_z = data.min(), data.max()
+Rx, Ry = gti.Lx/gti.Nx, gti.Ly/gti.Ny
+min_z, max_z = gti.data.min(), gti.data.max()
 Lz = float(max_z-min_z)
 
 print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
 print()
-print(f'Bounds: {bnd.left},{bnd.bottom} -> {bnd.right},{bnd.top}')
-print(f'Dims: {Nx} x {Ny} ; Resolution: {Rx} x {Ry}')
+print(f'Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.top}')
+print(f'Dims: {gti.Nx} x {gti.Ny} ; Resolution: {Rx} x {Ry}')
 print(f'Z range is apparently {min_z} to {max_z}')
-print(f'File contains {geotiff.count} band(s), using first ...')
 
 if args.resample != None:
-	print(f'Resampled to {args.resample} ({args.algorithm}); {geotiff.width}x{geotiff.height} => {Nx}x{Ny}')
+	print(f'Resampled to {args.resample} ({args.algorithm}); {gti.Nx_}x{gti.Ny_} => {gti.Nx}x{gti.Ny}')
 
 # No z scaling specified? Scale to smaller of x or y span
 if args.z_scale == None:
-	z_scale = min(Lx,Ly) / Lz
+	z_scale = min(gti.Lx,gti.Ly) / Lz
 	print(f'Calculated z_scale as {z_scale} from smallest existing dataset dimension ...')
 else:
 	z_scale = args.z_scale
@@ -142,7 +103,7 @@ print()
 # https://en.wikipedia.org/wiki/Wavefront_.obj_file
 #
 
-top, left = bnd.top, bnd.left
+top, left = gti.bnd.top, gti.bnd.left
 
 filtered = None
 
@@ -157,14 +118,14 @@ if args.filter != None:
 
 	filtered = [] # (row,col) tuples for points that pass filtering
 
-	for row in range(0, Ny):
+	for row in range(gti.Ny):
 		y = top - row*Ry
-		for col in range(0, Nx):
+		for col in range(gti.Nx):
 			x = left + col*Rx
 			if inside_quadrilateral(qa, qb, qc, qd, (x,y)):
 				filtered.append( (row,col) )
 
-	print(f'{len(filtered)}/{Ny*Nx} points passed filtering ({(100.0*len(filtered))/(Ny*Nx):.3} %).')
+	print(f'{len(filtered)}/{gti.Ny*gti.Nx} points passed filtering ({(100.0*len(filtered))/(gti.Ny*gti.Nx):.3} %).')
 
 # Write material file, if needed
 if args.texture != None:
@@ -199,15 +160,15 @@ if filtered != None:
 	for (row,col) in filtered:
 		y = top - row*Ry
 		x = left + col*Rx
-		z = (data[row][col] - min_z) * z_scale # relative to lowest z point in data
+		z = (gti.data[row][col] - min_z) * z_scale # relative to lowest z point in data
 		x_, y_, z_ = x-x0, y-y0, z-z0
 		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 else:
-	for row in range(0, Ny):
+	for row in range(gti.Ny):
 		y = top - row*Ry
-		for col in range(0, Nx):
+		for col in range(gti.Nx):
 			x = left + col*Rx
-			z = (data[row][col] - min_z) * z_scale # relative to lowest z point in data
+			z = (gti.data[row][col] - min_z) * z_scale # relative to lowest z point in data
 			x_, y_, z_ = x-x0, y-y0, z-z0
 			print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 
@@ -216,14 +177,14 @@ if args.texture != None:
 	print('  vertex texture coords...')
 	if filtered != None:
 		for (row,col) in filtered:
-			v = 1.0 - (1.0/Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
-			u = 1.0/Nx * (0.5+col)
+			v = 1.0 - (1.0/gti.Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
+			u = 1.0/gti.Nx * (0.5+col)
 			print(f'vt {u:.6f} {v:.6f}', file=f)
 	else:
-		for row in range(0, Ny):
-			v = 1.0 - (1.0/Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
-			for col in range(0, Nx):
-				u = 1.0/Nx * (0.5+col)
+		for row in range(gti.Ny):
+			v = 1.0 - (1.0/gti.Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
+			for col in range(gti.Nx):
+				u = 1.0/gti.Nx * (0.5+col)
 				print(f'vt {u:.6f} {v:.6f}', file=f)
 
 # Triangular faces, including texture coords if needed
@@ -235,11 +196,11 @@ if filtered != None:
 	for i,(row,col) in enumerate(filtered):
 		idx[row*Nx + col] = i+1
 
-	for row in range(0, Ny-1):
-		for col in range(0, Nx-1):
-			a = (row*Nx) + col
+	for row in range(gti.Ny-1):
+		for col in range(gti.Nx-1):
+			a = (row*gti.Nx) + col
 			b = a+1
-			c = ((row+1)*Nx) + col
+			c = ((row+1)*gti.Nx) + col
 			d = c+1
 
 			# Get actual indices (unit based) if passed filter, else 0
@@ -264,11 +225,11 @@ if filtered != None:
 				else:
 					print(f'f {i} {j} {k}', file=f)
 else:
-	for row in range(0, Ny-1):
-		for col in range(0, Nx-1):
-			a = (row*Nx) + col
+	for row in range(gti.Ny-1):
+		for col in range(gti.Nx-1):
+			a = (row*gti.Nx) + col
 			b = a+1
-			c = ((row+1)*Nx) + col
+			c = ((row+1)*gti.Nx) + col
 			d = c+1
 
 			i1, j1, k1 = c+1, b+1, a+1 # triangle 1
