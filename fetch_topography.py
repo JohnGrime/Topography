@@ -4,55 +4,6 @@ import sys, argparse, requests, time
 
 from util import Tee, stream_to_file
 
-#class GeoTiffDownloader:
-#
-#	base_url = 'https://portal.opentopography.org/API/globaldem'
-#
-#	sources = {
-#		'SRTMGL1': {
-#			'desc': 'Shuttle Radar Topography Mission GL1 (Global 30m)',
-#		},
-#
-#		'SRTMGL1_E': {
-#			'desc': 'Shuttle Radar Topography Mission GL1 ellipsoidal (Global 30m)',
-#		},
-#
-#		'SRTMGL3': {
-#			'desc': 'Shuttle Radar Topography Mission GL3 (Global 90m)',
-#		},
-#
-#		'AW3D30': {
-#			'desc': 'ALOS World 3D 30m',
-#		},
-#
-#		'AW3D30_E': {
-#			'desc': 'ALOS World 3D ellipsoidal (30m)',
-#		},
-#	}
-#
-#	outputs = {
-#		'AAIGrid': {
-#			'desc': 'Arc ASCII Grid',
-#			'suffix': 'asc',
-#		},
-#
-#		'GTiff': {
-#			'desc': 'GeoTiff',
-#			'suffix': 'tiff',
-#		},
-#	}
-#
-#	@staticmethod
-#	def get_request(src: str, lat0: float, lon0: float, lat1: float, lon1: float, out_fmt: str):
-#		return requests.get(GeoTiffDownloader.base_url, stream = True, params = {
-#			'demtype': src,
-#			'west': lon0,
-#			'east': lon1,
-#			'south': lat0,
-#			'north': lat1,
-#			'outputFormat': out_fmt,
-#			})
-
 import geotiff
 
 sources = geotiff.Downloader.sources
