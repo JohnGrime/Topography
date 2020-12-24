@@ -69,14 +69,12 @@ print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
 
-Rx, Ry = gti.Lx/gti.Nx, gti.Ly/gti.Ny
 min_z, max_z = gti.data.min(), gti.data.max()
-Lz = float(max_z-min_z)
 
 print()
 print(f'GeoTIFF: {args.gtiff}')
 print(f'  Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.top}')
-print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {Rx} x {Ry}')
+print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {gti.Lx/gti.Nx} x {gti.Ly/gti.Ny}')
 print(f'  Z range is apparently {min_z} to {max_z}')
 
 #
@@ -84,7 +82,7 @@ print(f'  Z range is apparently {min_z} to {max_z}')
 #
 
 if args.z_scale == None:
-	z_scale = min(gti.Lx,gti.Ly) / Lz
+	z_scale = min(gti.Lx,gti.Ly) / float(max_z-min_z)
 	print(f'Calculated z_scale as {z_scale} from smallest existing dataset dimension ...')
 else:
 	z_scale = args.z_scale
@@ -171,10 +169,10 @@ for row in range(row0,row1):
 		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 
 		if (args.texture != None):
-			# convert local position into normalized u,v coords
-			x_, y_ = (x-lon0)/lx, (y-lat0)/ly
-			u, y = x_ + 0.0, y_ + 0.0 # Note: v=0 is last texture row, not first
+			# local position => normalized u,v coords into texture
+			u, v = (x-lon0)/lx, (y-lat0)/ly # y-lat0 as v=0 is texture bottom
 			print(f'vt {u:.6f} {v:.6f}', file=f)
+
 #
 # Triangular faces, including texture coords if needed
 #
