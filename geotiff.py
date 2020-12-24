@@ -96,13 +96,18 @@ class Interpolator:
 
 	# scipy.interpolate is incredibly slow, so use ndimage.map_coordinates
 	# https://stackoverflow.com/questions/33259896/python-interpolation-2d-array-for-huge-arrays/33261924#33261924
-	def interp(self, x: float, y: float, normalized_coords: bool = False, order: int = 1):
+	def interpolate(self, x: float, y: float, normalized_coords: bool = False, order: int = 1):
+		# Only require these modules if we actually need them; the geotiff downloader
+		# class does not, but the interpolator does.
+		import numpy as np
+		from scipy import ndimage
+
 		if (normalized_coords == True):
-			col = x * (self.Nx-1)
-			row = y * (self.Ny-1)
+			col = (self.Nx-1) * x
+			row = (self.Ny-1) * y
 		else:
-			col = (x-self.bnd.left) / self.Lx
-			row = (y-self.bnd.bottom) / self.Ly
+			col = (self.Nx-1) * (x-self.bnd.left)/self.Lx
+			row = (self.Ny-1) * (y-self.bnd.bottom)/self.Ly
 		return ndimage.map_coordinates(self.data, [[row],[col]], output=np.float32, order=order)
 
 
