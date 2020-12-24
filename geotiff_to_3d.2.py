@@ -1,9 +1,26 @@
 # Author: John Grime
+#
+# General approach: we're probably combining multiple satellite image regions
+# of different resolutions. To avoid weird overlaps due to different sampling
+# locations in each data set, it's useful to sample all data on the same
+# regular grid. Therefore, we define a basis grid for sampling on the whole
+# topographical domain and try to ensure samples occur on grid points. As the
+# edges of the satellite imagery almost certainly don't sit nicely on the grid
+# points, we have to wrap extremal points onto the extents of the satellite
+# imagery bounds. If these "off-lattice" points are interpolated consistently,
+# we should still retain contiguous adjacent topography from satellite data at
+# different resolutions and arbitrary (overlapping) regions provided they draw
+# topographical data from the same underlying GeoTIFF (or whatever).
+#
 
 import sys, time, argparse
 
 from util import Tee
 import geotiff
+
+#
+# Set up arguments
+#
 
 parser = argparse.ArgumentParser(description='', epilog='')
 
@@ -38,6 +55,10 @@ opts.add_argument('-y0', type = float, required = False, default = 0.0,
 opts.add_argument('-z0', type = float, required = False, default = 0.0,
 	help = 'Make z coords relative to this value')
 
+#
+# Parse arguments and print some user information
+#
+
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
@@ -58,14 +79,20 @@ print(f'  Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.to
 print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {Rx} x {Ry}')
 print(f'  Z range is apparently {min_z} to {max_z}')
 
+#
 # No z scaling specified? Scale to smaller of x or y span
+#
+
 if args.z_scale == None:
 	z_scale = min(gti.Lx,gti.Ly) / Lz
 	print(f'Calculated z_scale as {z_scale} from smallest existing dataset dimension ...')
 else:
 	z_scale = args.z_scale
 
+#
 # Write material file, if needed
+#
+
 if args.texture != None:
 	print('Writing material file...')
 	f = open(args.output + '.mtl', 'w')
@@ -82,32 +109,24 @@ if args.texture != None:
 	print(f'  map_Ns {args.texture}', file=f) # specular highlight texture
 	f.close()
 
-# Write .obj file
+#
+# Write .obj file, including reference to material file if needed
+#
+
 print('Writing .obj file...')
 f = open(args.output + '.obj', 'w')
 
-# Include material in obj file, if needed
 if args.texture != None:
 	print(f'mtllib {args.output + ".mtl"}', file=f)
 	print(f'usemtl Default', file=f)
 
+#
 # Vertex positions
-print('  vertex positions...')
-x0, y0, z0 = args.x0, args.y0, args.z0
+#
 
-#
-# General approach: we're probably combining multiple satellite image regions
-# of different resolutions. To avoid weird overlaps due to different sampling
-# locations in each data set, it's useful to sample all data on the same
-# regular grid. Therefore, we define a basis grid for sampling on the whole
-# topographical domain and try to ensure samples occur on grid points. As the
-# edges of the satellite imagery almost certainly don't sit nicely on the grid
-# points, we have to wrap extremal points onto the extents of the satellite
-# imagery bounds. If these "off-lattice" points are interpolated consistently,
-# we should still retain contiguous adjacent topography from satellite data at
-# different resolutions and arbitrary (overlapping) regions provided they draw
-# topographical data from the same underlying GeoTIFF (or whatever).
-#
+print('  vertex positions...')
+
+x0, y0, z0 = args.x0, args.y0, args.z0 # to set local origin, if specified
 
 # CAPITAL LATTERS : global domain (i.e., whole topographical GeoTiff)
 
@@ -133,9 +152,12 @@ col1 = int( NX * (lon1-LON0)/LX ) + 1
 row0 = int( NY * (lat0-LAT0)/LY )
 row1 = int( NY * (lat1-LAT0)/LY ) + 1
 
+#
 # Note; we build the rows of vertices for the geometry from the "bottom" to
 # the "top" of the domain, so our u,v texture coords are the same (v in u,v
 # is relative to the bottom of the image)
+#
+
 for row in range(row0,row1):
 	y = LAT0 + row * LY/NY     # "global" y pos
 	y = min(max(lat0,y), lat1) # clamp onto "local" y bounds
@@ -153,8 +175,10 @@ for row in range(row0,row1):
 			x_, y_ = (x-lon0)/lx, (y-lat0)/ly
 			u, y = x_ + 0.0, y_ + 0.0 # Note: v=0 is last texture row, not first
 			print(f'vt {u:.6f} {v:.6f}', file=f)
-
+#
 # Triangular faces, including texture coords if needed
+#
+
 print('  faces...')
 for row in range((row1-row0)-1):
 	for col in range((col1-col0)-1):
@@ -162,9 +186,6 @@ for row in range((row1-row0)-1):
 		b = a+1
 		c = ((row+1)*(col1-col0)) + col
 		d = c+1
-
-		i1, j1, k1 = c+1, b+1, a+1 # triangle 1
-		i2, j2, k2 = b+1, c+1, d+1 # triangle 2
 
 		i1, j1, k1 = a+1, b+1, c+1 # triangle 1
 		i2, j2, k2 = d+1, c+1, b+1 # triangle 2
