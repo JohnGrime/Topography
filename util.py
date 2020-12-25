@@ -107,19 +107,19 @@ def latlon_span_in_m(
 	deg_to_m = lambda r: (2.0*math.pi*r)/360.0
 
 	r = earth_radius_m
-	lat_span = (lat_max_degs-lat_min_degs) * deg_to_m(r)
+	lat_span_m = (lat_max_degs-lat_min_degs) * deg_to_m(r)
 
 	# radius of circle arc along the longitudinal span depends on the latitude.
 
 	theta = lat_min_degs * (math.pi/180.0) # in radians
 	r = earth_radius_m * math.cos(theta)
-	lon_span0 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
+	lon_span0_m = (lon_max_degs-lon_min_degs) * deg_to_m(r)
 
 	theta = lat_max_degs * (math.pi/180.0) # in radians
 	r = earth_radius_m * math.cos(theta)
-	lon_span1 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
+	lon_span1_m = (lon_max_degs-lon_min_degs) * deg_to_m(r)
 
-	return lat_span, lon_span0, lon_span1
+	return lat_span_m, lon_span0_m, lon_span1_m
 
 #
 # For a given latitude, how many lat/lon degrees correspond to 1m?
@@ -128,14 +128,14 @@ def latlon_degs_per_m(lat_degs, earth_radius_m = 6.371e6):
 	r = earth_radius_m
 
 	# Metres per degree latitude is constant, regardless of latitude
-	dLat = (1.0*180.0)/(math.pi*r)
+	dLat_degs = (1.0*180.0)/(math.pi*r)
 
 	# radius of circle arc along the longitudinal span depends on the latitude.
 	theta = lat_degs * (math.pi/180.0) # in radians
 	r = earth_radius_m * math.cos(theta)
-	dLon = (1.0*180.0)/(math.pi*r)
+	dLon_degs = (1.0*180.0)/(math.pi*r)
 
-	return dLat, dLon
+	return dLat_degs, dLon_degs
 
 #
 # Stream data from request to specified file.
