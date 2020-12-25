@@ -55,6 +55,12 @@ opts.add_argument('-y0', type = float, required = False, default = 0.0,
 opts.add_argument('-z0', type = float, required = False, default = 0.0,
 	help = 'Make z coords relative to this value')
 
+opts.add_argument('-n_samples_x', type = int, required = True,
+	help = 'Number of samples on x (longitudinal) axis')
+
+opts.add_argument('-n_samples_y', type = int, required = True,
+	help = 'Number of samples on y (latitudinal axis')
+
 #
 # Parse arguments and print some user information
 #
@@ -77,6 +83,10 @@ print(f'  Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.to
 print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {gti.Lx/gti.Nx} x {gti.Ly/gti.Ny}')
 print(f'  Z range is apparently {min_z} to {max_z}')
 
+print()
+print(f'{args.n_samples_x} samples on global domain x (longitudinal) axis')
+print(f'{args.n_samples_y} samples on global domain y (latitudinal) axis')
+
 #
 # No z scaling specified? Scale to smaller of x or y span
 #
@@ -86,6 +96,8 @@ if args.z_scale == None:
 	print(f'Calculated z_scale as {z_scale} from smallest existing dataset dimension ...')
 else:
 	z_scale = args.z_scale
+
+print()
 
 #
 # Write material file, if needed
@@ -128,7 +140,7 @@ x0, y0, z0 = args.x0, args.y0, args.z0 # to set local origin, if specified
 
 # CAPITAL LATTERS : global domain (i.e., whole topographical GeoTiff)
 
-NX, NY = 1000, 1000 # discrete sampling points on entire domain
+NX, NY = args.n_samples_x, args.n_samples_y # discrete sampling points on entire domain
 
 LON0, LON1 = gti.bnd.left, gti.bnd.right
 LAT0, LAT1 = gti.bnd.bottom, gti.bnd.top
