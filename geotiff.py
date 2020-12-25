@@ -71,11 +71,12 @@ class Interpolator:
 			self.bnd = geotiff.bounds
 
 			if scale != None:
-				algo = Resampling.nearest
-				if how == 'bilinear':
-					algo = Resampling.bilinear
+				if how == 'nearest':
+					algo = rasterio.enums.Resampling.nearest
+				elif how == 'bilinear':
+					algo = rasterio.enums.Resampling.bilinear
 				elif how == 'cubic':
-					algo = Resampling.cubic
+					algo = rasterio.enums.Resampling.cubic
 				else:
 					print('Unknown resampling algorithm "{how}"; using cubic')
 					algo = Resampling.cubic
