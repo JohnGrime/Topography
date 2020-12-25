@@ -7,10 +7,8 @@ def basic(args):
 	print(f'degs lat,lon for 1m @ lat={lat_degs}: {dLat}, {dLon}')
 
 def m_span_to_latlon(args):
-	lat_degs = float(args[0])
-	lon_degs = float(args[1])
-	lat_span_m = float(args[2])
-	lon_span_m = float(args[3])
+	lat_degs, lon_degs = [float(x) for x in args[0:2]]
+	lat_span_m, lon_span_m = [float(x) for x in args[2:4]]
 	dLat, dLon = util.latlon_degs_per_m(lat_degs)
 	dLat, dLon = lat_span_m*dLat, lon_span_m*dLon
 	print(f'-lat {lat_degs-dLat/2} {lat_degs+dLat/2} -lon {lon_degs-dLon/2} {lon_degs+dLon/2}')
@@ -43,8 +41,7 @@ try:
 	elif len(sys.argv) == 2:
 		basic(sys.argv[1:])
 	else:
-		what = sys.argv[1]
-		args = sys.argv[2:]
+		what, args = sys.argv[1], sys.argv[2]
 		if what == 'to_m':
 			latlon_span_to_m(args)
 		elif what == 'to_deg':
