@@ -246,7 +246,7 @@ if args.combine:
 	# Obj file
 	#
 	# 1 - 2
-	# | \ | : 1,2,4 : 1,4,3
+	# | \ | : 1,4,2 : 1,3,4
 	# 3 - 4
 	#
 	v1 = [args.lon[0], args.lat[1], 0]
