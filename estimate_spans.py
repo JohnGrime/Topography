@@ -1,47 +1,9 @@
 import sys, math
-
-# Convert latitude and longitude spans in degrees into spans in metres.
-# Note that longitude span depends on latitude, but latitude span same
-# for any longitude.
-def span_in_m(
-	lat_min_degs, lat_max_degs,
-	lon_min_degs, lon_max_degs,
-	earth_radius_m = 6.371e6):
-
-	deg_to_m = lambda r: (2.0*math.pi*r)/360.0
-
-	r = earth_radius_m
-	lat_span = (lat_max_degs-lat_min_degs) * deg_to_m(r)
-
-	# radius of circle arc along the longitudinal span depends on the latitude.
-
-	theta = lat_min_degs * (math.pi/180.0) # in radians
-	r = earth_radius_m * math.cos(theta)
-	lon_span0 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
-
-	theta = lat_max_degs * (math.pi/180.0) # in radians
-	r = earth_radius_m * math.cos(theta)
-	lon_span1 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
-
-	return lat_span, lon_span0, lon_span1
-
-# For a given latitude, how many degrees correspond to 1m?
-def latlon_degs_per_m(lat_degs, earth_radius_m = 6.371e6):
-	r = earth_radius_m
-
-	# Metres per degree latitude is constant, regardless of latitude
-	dLat = (1.0*180.0)/(math.pi*r)
-
-	# radius of circle arc along the longitudinal span depends on the latitude.
-	theta = lat_degs * (math.pi/180.0) # in radians
-	r = earth_radius_m * math.cos(theta)
-	dLon = (1.0*180.0)/(math.pi*r)
-
-	return dLat, dLon
+import util
 
 def basic(args):
 	lat_degs = float(args[0])
-	dLat, dLon = latlon_degs_per_m(lat_degs)
+	dLat, dLon = util.latlon_degs_per_m(lat_degs)
 	print(f'degs lat,lon for 1m @ lat={lat_degs}: {dLat}, {dLon}')
 
 def m_span_to_latlon(args):
@@ -49,14 +11,14 @@ def m_span_to_latlon(args):
 	lon_degs = float(args[1])
 	lat_span_m = float(args[2])
 	lon_span_m = float(args[3])
-	dLat, dLon = latlon_degs_per_m(lat_degs)
+	dLat, dLon = util.latlon_degs_per_m(lat_degs)
 	dLat, dLon = lat_span_m*dLat, lon_span_m*dLon
 	print(f'-lat {lat_degs-dLat/2} {lat_degs+dLat/2} -lon {lon_degs-dLon/2} {lon_degs+dLon/2}')
 
 def latlon_span_to_m(args):
 	lat0, lat1 = [float(x) for x in args[0:2]]
 	lon0, lon1 = [float(x) for x in args[2:4]]
-	lat_span, lon_span0, lon_span1 = span_in_m(lat0,lat1, lon0,lon1)
+	lat_span, lon_span0, lon_span1 = util.latlon_span_in_m(lat0,lat1, lon0,lon1)
 	print(f'lat span: {lat_span}, lon span at lat0: {lon_span0}, lon span at lat1: {lon_span1}')
 
 def print_usage(prog):

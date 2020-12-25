@@ -95,6 +95,49 @@ class WebMercator:
 		return px/C, py/C
 
 #
+# Convert latitude and longitude spans in degrees into spans in metres.
+# Note that longitude span depends on latitude, but latitude span same
+# for any longitude.
+#
+def latlon_span_in_m(
+	lat_min_degs, lat_max_degs,
+	lon_min_degs, lon_max_degs,
+	earth_radius_m = 6.371e6):
+
+	deg_to_m = lambda r: (2.0*math.pi*r)/360.0
+
+	r = earth_radius_m
+	lat_span = (lat_max_degs-lat_min_degs) * deg_to_m(r)
+
+	# radius of circle arc along the longitudinal span depends on the latitude.
+
+	theta = lat_min_degs * (math.pi/180.0) # in radians
+	r = earth_radius_m * math.cos(theta)
+	lon_span0 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
+
+	theta = lat_max_degs * (math.pi/180.0) # in radians
+	r = earth_radius_m * math.cos(theta)
+	lon_span1 = (lon_max_degs-lon_min_degs) * deg_to_m(r)
+
+	return lat_span, lon_span0, lon_span1
+
+#
+# For a given latitude, how many lat/lon degrees correspond to 1m?
+#
+def latlon_degs_per_m(lat_degs, earth_radius_m = 6.371e6):
+	r = earth_radius_m
+
+	# Metres per degree latitude is constant, regardless of latitude
+	dLat = (1.0*180.0)/(math.pi*r)
+
+	# radius of circle arc along the longitudinal span depends on the latitude.
+	theta = lat_degs * (math.pi/180.0) # in radians
+	r = earth_radius_m * math.cos(theta)
+	dLon = (1.0*180.0)/(math.pi*r)
+
+	return dLat, dLon
+
+#
 # Stream data from request to specified file.
 #
 def stream_to_file(req, path: str, chunk_bytes: int = 512*1024, update_bytes: int = 256*1024) -> (int):
