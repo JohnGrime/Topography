@@ -41,7 +41,7 @@ try:
 	elif len(sys.argv) == 2:
 		basic(sys.argv[1:])
 	else:
-		what, args = sys.argv[1], sys.argv[2]
+		what, args = sys.argv[1], sys.argv[2:]
 		if what == 'to_m':
 			latlon_span_to_m(args)
 		elif what == 'to_deg':

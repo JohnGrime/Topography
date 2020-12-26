@@ -128,14 +128,14 @@ def latlon_degs_per_m(lat_degs, earth_radius_m = 6.371e6):
 	r = earth_radius_m
 
 	# Metres per degree latitude is constant, regardless of latitude
-	dLat_degs = (1.0*180.0)/(math.pi*r)
+	dLat_degs_per_m = (1.0*180.0)/(math.pi*r)
 
 	# radius of circle arc along the longitudinal span depends on the latitude.
 	theta = lat_degs * (math.pi/180.0) # in radians
 	r = earth_radius_m * math.cos(theta)
-	dLon_degs = (1.0*180.0)/(math.pi*r)
+	dLon_degs_per_m = (1.0*180.0)/(math.pi*r)
 
-	return dLat_degs, dLon_degs
+	return dLat_degs_per_m, dLon_degs_per_m
 
 #
 # Stream data from request to specified file.

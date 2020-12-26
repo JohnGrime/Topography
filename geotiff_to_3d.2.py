@@ -15,7 +15,7 @@
 
 import sys, time, argparse
 
-from util import Tee
+from util import Tee, latlon_degs_per_m
 import geotiff
 
 #
@@ -168,6 +168,154 @@ row1 = int( NY * (lat1-LAT0)/LY ) + 1
 # is relative to the bottom of the image)
 #
 
+# Estimate conversion from degs to metres using central latitude. This is not
+# formally correct, as the longitudinal (i.e., x) scaling will change with
+# latitude (y)!
+dLat_degs_per_m, dLon_degs_per_m = latlon_degs_per_m((lat0+lat1)/2)
+dLat_m_per_deg = 1.0/dLat_degs_per_m
+dLon_m_per_deg = 1.0/dLon_degs_per_m
+
+#
+# To allow clipping to interior rect, store explicitly valid triangles as
+# we attempt to add small rectangles rather than individual vertices.
+#
+
+clip = [ lon0+lx/4, lon1-lx/4, lat0+ly/4, lat1-ly/4 ]
+
+def intersects( x, y, x0, x1, y0, y1 ):
+	if (x < x0) or (x > x1): return True
+	if (y < y0) or (y > y1): return True
+	return False
+
+def clamp(x, x0, x1):
+	return min(max(x0,x),x1)
+
+vtx_idx = 1
+for row in range(row0,row1):
+	y0 = LAT0 + row * LY/NY   # "global" y0 pos
+	y0 = clamp(y0, lat0,lat1) # clamp onto "local" y bounds
+
+	y1 = LAT0 + (row+1) * LY/NY # "global" y1 pos
+	y1 = clamp(y1, lat0,lat1)   # clamp onto "local" y bounds
+
+	for col in range(col0,col1):
+		x0 = LON0 + col * LX/NX   # "global" x pos
+		x0 = clamp(x0, lon0,lon1) # clamp onto "local" x bounds
+
+		x1 = LON0 + (col+1) * LX/NX # "global" x pos
+		x1 = clamp(x1, lon0,lon1)   # clamp onto "local" x bounds
+
+		#
+		# Four points clockwise from top left: (x0,y1), (x1,y1), (x1,y0), (x0,y0)
+		#
+		# 1 -- 2
+		# |    |
+		# 4 -- 3
+		#
+
+		all_points = [ (x0,y1), (x1,y1), (x1,y0), (x0,y0) ]
+		good_points, bad_points, tri = [], [], []
+
+		v1 = vtx_idx
+		v2 = vtx_idx+1
+		v3 = vtx_idx+2
+		v4 = vtx_idx+3
+
+		for i in range(4):
+			x,y = points[i]
+			if intersects(x,y, clip[0],clip[1], clip[2],clip[3]):
+				bad_points.append(i)
+			else:
+				good_points.append(i)
+
+		N = len(bad_points)
+		if N == 0:
+			# Standard addition of two triangles, as no vertices clipped.
+			tri = [ [v1,v3,v4], [v1,v4,v3] ]
+			pass
+		elif N == 1:
+			# Single corner intersects; we'll need to add TWO triangle pairs
+			pass
+		elif N == 2:
+			# Need an arrangement like so to match outer/inner resolutions:
+			#
+			# 1---2 outer (lower) res
+			# |\ /|
+			# 5-4-3 inner (higher) res; 2x outer!
+			#
+			# = triangles [1,2,4], [2,3,4]. [4,5,1] (all clockwise)
+			#
+			# Depending on where the clipping takes place, we need to rotate
+			# this arrangement by 0, 90, 180, or 270 degrees so the high-res
+			# edge lies along the interior clip region. We take as the rotation
+			# center the point "4". Fortunately, the 2d rotation matrix ...
+			#
+			# | cos(theta)  -sin(theta) |
+			# | sin(theta)   cos(thets) |
+			#
+			# ... simplifies considerably for theta = 0, 90, 180, or 270 degs
+			# as all sin and cos for these values is either -1, 0, or 1.
+			#
+			# Therefore, point (x,y) rotated by appropriate angles is:
+			#
+			# 0 degs   = ( x,  y)
+			# 90 degs  = ( y, -x)
+			# 180 degs = (-x, -y)
+			# 270 degs = (-y,  x)
+			#
+			# Note: all point coords are relative to "4"!
+			#
+			# Triangle indices remain identical.
+			#
+			#
+
+
+		#
+		# Save vertex and texture coords for required vertices
+		#
+
+		for i in range(len(good_points)):
+			x,y = good_points[i]
+
+			z = gti.interpolate(x, lat1-(y-lat0)) * z_scale
+			x_, y_, z_ = x-x0, y-y0, float(z-z0)
+			
+			x_ *= dLon_m_per_deg
+			y_ *= dLat_m_per_deg
+
+			print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
+
+			if (args.texture != None):
+				# local position => normalized u,v coords into texture
+				u, v = (x-lon0)/lx, (y-lat0)/ly # y-lat0 as v=0 is texture bottom
+				print(f'vt {u:.6f} {v:.6f}', file=f)
+
+		#
+		# Save triangular face data
+		#
+
+		for i in range(len(tri)):
+			v1,v2,v3 = tri[i]
+			if args.texture != None:
+				print(f'f {v1}/{v1} {v2}/{v2} {v3}/{v3}', file=f)
+			else:
+				print(f'f {v1} {v2} {v3}', file=f)
+
+
+		z = gti.interpolate(x, lat1-(y-lat0)) * z_scale
+		x_, y_, z_ = x-x0, y-y0, float(z-z0)
+		
+		x_ *= dLon_m_per_deg
+		y_ *= dLat_m_per_deg
+
+		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
+
+		if (args.texture != None):
+			# local position => normalized u,v coords into texture
+			u, v = (x-lon0)/lx, (y-lat0)/ly # y-lat0 as v=0 is texture bottom
+			print(f'vt {u:.6f} {v:.6f}', file=f)
+
+
 for row in range(row0,row1):
 	y = LAT0 + row * LY/NY     # "global" y pos
 	y = min(max(lat0,y), lat1) # clamp onto "local" y bounds
@@ -178,6 +326,10 @@ for row in range(row0,row1):
 
 		z = gti.interpolate(x, lat1-(y-lat0)) * z_scale
 		x_, y_, z_ = x-x0, y-y0, float(z-z0)
+		
+		x_ *= dLon_m_per_deg
+		y_ *= dLat_m_per_deg
+
 		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 
 		if (args.texture != None):
