@@ -31,35 +31,38 @@ opts.add_argument('gtiff',
 
 opts = parser.add_argument_group('Output options')
 
-opts.add_argument('-output', type = str, default = 'output',
-	help = 'Output file prefix')
-
-opts.add_argument('-z_scale', type = float, default = 1.0,
-	help = 'Scaling applied to z axis (inferred from other dims if omitted)')
-
-opts.add_argument('-texture', type = str,
-	help = 'Texture file (triggers use of texture coords etc in output file)')
-
 opts.add_argument('-lat', required = True, type = float, nargs = 2,
 	help = 'Min and max latitude in degrees (south pole at -90, north poles at +90)')
 
 opts.add_argument('-lon', required = True, type = float, nargs = 2,
 	help = 'Min and max longitude in degrees (-180 to +180, positive is east')
 
-opts.add_argument('-x0', type = float, required = False, default = 0.0,
-	help = 'Make x coords relative to this value')
-
-opts.add_argument('-y0', type = float, required = False, default = 0.0,
-	help = 'Make y coords relative to this value')
-
-opts.add_argument('-z0', type = float, required = False, default = 0.0,
-	help = 'Make z coords relative to this value')
-
 opts.add_argument('-n_samples_x', type = int, required = True,
 	help = 'Number of samples on x (longitudinal) axis')
 
 opts.add_argument('-n_samples_y', type = int, required = True,
 	help = 'Number of samples on y (latitudinal axis')
+
+opts.add_argument('-texture', type = str,
+	help = 'Texture file (triggers use of texture coords etc in output file)')
+
+opts.add_argument('-output', type = str, default = 'output',
+	help = 'Output file prefix')
+
+opts.add_argument('-z_scale', type = float, default = 1.0,
+	help = 'Scaling applied to z axis (inferred from other dims if omitted)')
+
+opts.add_argument('-x0', type = float, default = 0.0,
+	help = 'Make x coords relative to this value')
+
+opts.add_argument('-y0', type = float, default = 0.0,
+	help = 'Make y coords relative to this value')
+
+opts.add_argument('-z0', type = float, default = 0.0,
+	help = 'Make z coords relative to this value')
+
+opts.add_argument('-reorder', type = str, default = 'xyz',
+	help = 'Reorder string for axes in output')
 
 #
 # Parse arguments and print some user information
@@ -131,7 +134,7 @@ if args.texture != None:
 	print(f'usemtl Default', file=f)
 
 #
-# Vertex positions
+# Generate .obj file
 #
 
 print('  vertex positions...')
@@ -162,12 +165,6 @@ col1 = int( NX * (lon1-LON0)/LX ) + 1
 row0 = int( NY * (lat0-LAT0)/LY )
 row1 = int( NY * (lat1-LAT0)/LY ) + 1
 
-#
-# Note; we build the rows of vertices for the geometry from the "bottom" to
-# the "top" of the domain, so our u,v texture coords are the same (v in u,v
-# is relative to the bottom of the image)
-#
-
 # Estimate conversion from degs to metres using central latitude. This is not
 # formally correct, as the longitudinal (i.e., x) scaling changes with
 # latitude (y)!
@@ -175,8 +172,31 @@ dLat_degs_per_m, dLon_degs_per_m = latlon_degs_per_m((lat0+lat1)/2)
 dLat_m_per_deg = 1.0/dLat_degs_per_m
 dLon_m_per_deg = 1.0/dLon_degs_per_m
 
-# For future remapping capability. Internally, we use z = elevation.
-x_idx, y_idx, z_idx = 0,1,2
+#
+# Determine axis mapping
+#
+
+axis_order, axis_id = [0,1,2], {'x': 0, 'y': 1, 'z': 2}
+
+if len(args.reorder) != 3:
+		print(f'Bad axis remap string "{args.reorder}"')
+		sys.exit(-1)
+
+for i,axis in enumerate(args.reorder):
+	if axis in axis_id: axis_order[i] = axis_id[axis]
+	else:
+		print(f'Unknown axis identifier "{axis}"')
+		sys.exit(-1)
+
+#
+# Generate vertex positions
+#
+# Note; we build the rows of vertices for the geometry from the "bottom" to
+# the "top" of the domain, so our u,v texture coords are the same (i.e., v in
+# u,v is relative to the bottom of the image)
+#
+
+x_idx, y_idx, z_idx = axis_order
 
 clamp = lambda x, x0, x1: min(max(x0,x),x1)
 
