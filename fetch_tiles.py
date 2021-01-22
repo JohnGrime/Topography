@@ -76,6 +76,10 @@ opts.add_argument('-lon', required = True, type = float, nargs = 2,
 opts.add_argument('-zoom', required = True, type = int,
 	help = 'Zoom level (0 to 23, larger values include more detail)')
 
+opts.add_argument('-even', required = False, type = bool,
+	default = False,
+	help = 'Round tile bounds down and up so tiled region commensurate with next zoom level down')
+
 opts = parser.add_argument_group('Data caching')
 
 opts.add_argument('-cache', required = False, type = str,
@@ -147,6 +151,29 @@ print()
 print(f'  Pixel y range => (tile:offset,tile:offset) : ({y_pix[0]:.2f},{y_pix[1]:.2f}) => ({y_tile[0]}:{y_ofs[0]},{y_tile[1]}:{y_ofs[1]})')
 print(f'  Pixel x range => (tile:offset,tile:offset) : ({x_pix[0]:.2f},{x_pix[1]:.2f}) => ({x_tile[0]}:{x_ofs[0]},{x_tile[1]}:{x_ofs[1]})')
 print()
+
+if args.even == True:
+	if (x_tile[0]%2 != 0):
+		x_tile[0] -= 1 # round minimum DOWN
+		x_ofs[0] = 0
+
+	if (x_tile[1]%2 != 0):
+		x_tile[1] += 1 # round maximum UP
+		x_ofs[1] = 0
+
+	if (y_tile[0]%2 != 0):
+		y_tile[0] -= 1
+		y_ofs[0] = 0
+
+	if (y_tile[1]%2 != 0):
+		y_tile[1] += 1
+		y_ofs[1] = 0
+
+	print()
+	print('Remapped lattice cells:')
+	print(f'  Pixel y range => (tile:offset,tile:offset) : ({y_pix[0]:.2f},{y_pix[1]:.2f}) => ({y_tile[0]}:{y_ofs[0]},{y_tile[1]}:{y_ofs[1]})')
+	print(f'  Pixel x range => (tile:offset,tile:offset) : ({x_pix[0]:.2f},{x_pix[1]:.2f}) => ({x_tile[0]}:{x_ofs[0]},{x_tile[1]}:{x_ofs[1]})')
+	print()
 
 #
 # Download, cache, and combine tiles (latter optional)

@@ -9,9 +9,10 @@ def basic(args):
 def m_span_to_latlon(args):
 	lat_degs, lon_degs = [float(x) for x in args[0:2]]
 	lat_span_m, lon_span_m = [float(x) for x in args[2:4]]
+	tag = '' if (len(args)<5) else args[4]
 	dLat, dLon = util.latlon_degs_per_m(lat_degs)
 	dLat, dLon = lat_span_m*dLat, lon_span_m*dLon
-	print(f'-lat {lat_degs-dLat/2} {lat_degs+dLat/2} -lon {lon_degs-dLon/2} {lon_degs+dLon/2}')
+	print(f'-lat{tag} {lat_degs-dLat/2} {lat_degs+dLat/2} -lon{tag} {lon_degs-dLon/2} {lon_degs+dLon/2}')
 
 def latlon_span_to_m(args):
 	lat0, lat1 = [float(x) for x in args[0:2]]

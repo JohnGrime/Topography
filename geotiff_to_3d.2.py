@@ -61,7 +61,7 @@ opts.add_argument('-y0', type = float, default = 0.0,
 opts.add_argument('-z0', type = float, default = 0.0,
 	help = 'Make z coords relative to this value')
 
-opts.add_argument('-reorder', type = str, default = 'xyz',
+opts.add_argument('-reorder', type = str, required = False, default = 'xyz',
 	help = 'Reorder string for axes in output')
 
 #

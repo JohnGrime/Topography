@@ -1,4 +1,8 @@
 # Author: John Grime
+#
+# This file is a collection of helper routines, and ensures we perform certain
+# calculations consistently.
+#
 
 import sys, math
 
@@ -94,6 +98,19 @@ class WebMercator:
 		C = float(tile_size) * (2**zoom)
 		return px/C, py/C
 
+	@staticmethod
+	def lonlat_to_tile(lon: float, lat: float, zoom: int) -> (int, int):
+		N_cell = 2**zoom # number of lattice cells at this zoom level
+		world_x, world_y = util.WebMercator.lonlat_to_world(lon, lat)
+		return int(world_x*N_cell), int(world_y*N_cell)
+
+	@staticmethod
+	def tile_to_lonlat(tx: int, ty: int, zoom: int) -> (float, float):
+		N_cell = 2**zoom # number of lattice cells at this zoom level
+		lon = float(tx)/N_cell * 2.0*math.pi - math.pi
+		lat = math.pi/2 - float(ty)/N_cell * math.pi
+		return lon, lat # lon,lat of TOP LEFT of lattice cell
+
 #
 # Convert latitude and longitude spans in degrees into spans in metres.
 # Note that longitude span depends on latitude, but latitude span same
@@ -152,3 +169,13 @@ def stream_to_file(req, path: str, chunk_bytes: int = 512*1024, update_bytes: in
 				print(f'Read {n_chunks} chunks, {bytes_read/(1024*1024):.2f} MiB')
 				next_update += update_bytes
 	return bytes_read
+
+#
+# Align lattice coords to specified granularity
+#
+def align_lattice(lv: [int], alignment: int, round_up = False) -> int:
+	def align(v: int) -> int:
+		delta = 1 if ((round_up) and (v%alignment != 0)) else 0
+		return (int(v/alignment)+delta)*alignment
+	return [align(v) for v in lv]
+
