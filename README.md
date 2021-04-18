@@ -16,7 +16,7 @@ For example, to create a 3D model of the Grand Canyon between `latitude 35.9443,
 ```
 $ python3 fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
-$ python3 -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
+$ python3 geotiff_to_3d.py topography.tiff -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
 ```
 
 These operations produce the following model as shown in [MeshLab](https://www.meshlab.net/):
@@ -222,12 +222,12 @@ Output options:
 To combine the digital elevation data with the satellite texture data processed in the examples for `fetch_topography.py` and `fetch_tiles.py` above:
 
 ```
-$ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
+$ python3 geotiff_to_3d.py topography.tiff -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
 
 File contains 1 band(s), using first ...
 
-Run at: Sun Apr 18 14:30:22 2021
-Run as: geotiff_to_3d.2.py topography.tiff -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
+Run at: Sun Apr 18 14:42:17 2021
+Run as: geotiff_to_3d.py topography.tiff -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
 
 GeoTIFF: topography.tiff
   Bounds: -112.27791666668206,35.9445833333388 -> -112.01541666668211,36.29958333333872
