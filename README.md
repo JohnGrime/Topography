@@ -16,7 +16,7 @@ For example, to create a 3D model of the Grand Canyon between `latitude 35.9443,
 ```
 $ python3 fetch_topography.py -src SRTMGL3 -out_fmt GTiff -file topography -lat 35.9443 36.2990 -lon -112.2772 -112.0149
 $ python3 fetch_tiles.py -src usgs -zoom 13 -combine -lat 35.9443 36.2990 -lon -112.2772 -112.0149
-$ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.jpeg -z_scale=0.000025
+$ python3 -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
 ```
 
 These operations produce the following model as shown in [MeshLab](https://www.meshlab.net/):
@@ -191,12 +191,8 @@ The GeoTIFF processing technically requires [`numpy`](https://numpy.org/), but t
 
 ```
 $ python3 geotiff_to_3d.py
-usage: geotiff_to_3d.py [-h] [-output OUTPUT] [-z_scale Z_SCALE]
-                        [-texture TEXTURE]
-                        [-filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER]
-                        [-resample RESAMPLE]
-                        [-algorithm {cubic,bilinear,nearest}] [-x0 X0]
-                        [-y0 Y0] [-z0 Z0]
+usage: geotiff_to_3d.py [-h] -lat LAT LAT -lon LON LON -n_samples_x N_SAMPLES_X -n_samples_y N_SAMPLES_Y [-texture TEXTURE] [-output OUTPUT]
+                        [-z_scale Z_SCALE] [-x0 X0] [-y0 Y0] [-z0 Z0] [-reorder REORDER]
                         gtiff
 
 optional arguments:
@@ -206,22 +202,19 @@ Input options:
   gtiff                 GeotTIFF input file path
 
 Output options:
+  -lat LAT LAT          Min and max latitude in degrees (south pole at -90, north poles at +90)
+  -lon LON LON          Min and max longitude in degrees (-180 to +180, positive is east
+  -n_samples_x N_SAMPLES_X
+                        Number of samples on x (longitudinal) axis
+  -n_samples_y N_SAMPLES_Y
+                        Number of samples on y (latitudinal axis
+  -texture TEXTURE      Texture file (triggers use of texture coords etc in output file)
   -output OUTPUT        Output file prefix
-  -z_scale Z_SCALE      Scaling applied to z axis (inferred from other dims if
-                        omitted)
-  -texture TEXTURE      Texture file (triggers use of texture coords etc in
-                        output file)
-  -filter FILTER FILTER FILTER FILTER FILTER FILTER FILTER FILTER
-                        Four lat & lon pairs (ordered CLOCKWISE) defining a
-                        quadrilateral filtering area
-  -resample RESAMPLE    Resample data accoring to this proportion (e.g. 0.5 =
-                        use half resolution)
-  -algorithm {cubic,bilinear,nearest}
-                        Resampling algorithm
+  -z_scale Z_SCALE      Scaling applied to z axis (inferred from other dims if omitted)
   -x0 X0                Make x coords relative to this value
   -y0 Y0                Make y coords relative to this value
   -z0 Z0                Make z coords relative to this value
-```
+  -reorder REORDER      Reorder string for axes in output```
 
 ### Example
 
@@ -230,24 +223,27 @@ To combine the digital elevation data with the satellite texture data processed 
 ```
 $ python3 geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
 
-Run at: Sun Sep 27 17:40:51 2020
-Run as: geotiff_to_3d.py topography.tiff -output out -texture combined.cropped.png -z_scale=0.000025
-
-Bounds: -112.27736111110215,36.29902777777464 -> -112.01513888887989,35.94430555555237
-Dims: 944 x 1277 ; Resolution: 0.0002777777777778146 x 0.0002777777777778146
-Z range is apparently 667 to 2741
 File contains 1 band(s), using first ...
+
+Run at: Sun Apr 18 14:30:22 2021
+Run as: geotiff_to_3d.2.py topography.tiff -lat 35.9443 36.2990 -lon -112.2772 -112.0149 -n_samples_x 500 -n_samples_y 500 -output out -texture combined.cropped.jpeg
+
+GeoTIFF: topography.tiff
+  Bounds: -112.27791666668206,35.9445833333388 -> -112.01541666668211,36.29958333333872
+  Dims: 315 x 426 ; Resolution: 0.0008333333333331619 x 0.0008333333333331426
+  Z range is apparently 686 to 2741
+
+500 samples on global domain x (longitudinal) axis
+500 samples on global domain y (latitudinal) axis
 
 Writing material file...
 Writing .obj file...
   vertex positions...
-  vertex texture coords...
   faces...
 Done.
 ```
 
-Here, we apply a scaling of `0.000025` to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
-
+A scaling can be applied to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
 
 ## `estimate_spans.py`
 

@@ -1,32 +1,26 @@
 # Author: John Grime
+#
+# General approach: we're probably combining multiple satellite image regions
+# of different resolutions. To avoid weird overlaps due to different sampling
+# locations in each data set, it's useful to sample all data on the same
+# regular grid. Therefore, we define a basis grid for sampling on the whole
+# topographical domain and try to ensure samples occur on grid points. As the
+# edges of the satellite imagery almost certainly don't sit nicely on the grid
+# points, we have to wrap extremal points onto the extents of the satellite
+# imagery bounds. If these "off-lattice" points are interpolated consistently,
+# we should still retain contiguous adjacent topography from satellite data at
+# different resolutions and arbitrary (overlapping) regions provided they draw
+# topographical data from the same underlying GeoTIFF (or whatever).
+#
 
 import sys, time, argparse
 
-from util import Tee
+from util import Tee, latlon_degs_per_m
 import geotiff
 
 #
-# Check if point M is inside parallelogram defined by points A,B,C,D.
-# https://stackoverflow.com/questions/2752725/finding-whether-a-point-lies-inside-a-rectangle-or-not
+# Set up arguments
 #
-# Note: Points must be defined in CLOCKWISE order!
-#
-def inside_quadrilateral(A, B, C, D, m):
-	v = lambda p1,p2 : [p2[0]-p1[0], -(p2[1]-p1[1])]
-	f = lambda v1,v2 : (v1[1]*v2[0] + v1[0]*v2[1])
-
-	AB, AD, BC, CD = v(A,B), v(A,D), v(B,C), v(C,D)
-	C1, C2, C3, C4 = -f(AB,A), -f(AD,A), -f(BC,B), -f(CD,C)
-	D1, D2, D3, D4 =  f(AB,m) + C1,  f(AD,m) + C2,  f(BC,m) + C3,  f(CD,m) + C4
-
-	return (0 >= D1) and (0 >= D4) and (0 <= D2) and (0 >= D3)
-
-#
-# Handle command line arguments
-#
-
-tee_stdout = Tee('stdout.txt', 'w', 'stdout')
-tee_stderr = Tee('stderr.txt', 'w', 'stderr')
 
 parser = argparse.ArgumentParser(description='', epilog='')
 
@@ -37,61 +31,71 @@ opts.add_argument('gtiff',
 
 opts = parser.add_argument_group('Output options')
 
-opts.add_argument('-output', type = str, default = 'output',
-	help = 'Output file prefix')
+opts.add_argument('-lat', required = True, type = float, nargs = 2,
+	help = 'Min and max latitude in degrees (south pole at -90, north poles at +90)')
 
-opts.add_argument('-z_scale', type = float,
-	help = 'Scaling applied to z axis (inferred from other dims if omitted)')
+opts.add_argument('-lon', required = True, type = float, nargs = 2,
+	help = 'Min and max longitude in degrees (-180 to +180, positive is east')
+
+opts.add_argument('-n_samples_x', type = int, required = True,
+	help = 'Number of samples on x (longitudinal) axis')
+
+opts.add_argument('-n_samples_y', type = int, required = True,
+	help = 'Number of samples on y (latitudinal axis')
 
 opts.add_argument('-texture', type = str,
 	help = 'Texture file (triggers use of texture coords etc in output file)')
 
-opts.add_argument('-filter', type = float, nargs=8, default=None,
-	help = 'Four lat & lon pairs (ordered CLOCKWISE) defining a quadrilateral filtering area')
+opts.add_argument('-output', type = str, default = 'output',
+	help = 'Output file prefix')
 
-opts.add_argument('-resample', type = float, default = None,
-	help = 'Resample data accoring to this proportion (e.g. 0.5 = use half resolution)')
+opts.add_argument('-z_scale', type = float, default = 1.0,
+	help = 'Scaling applied to z axis (inferred from other dims if omitted)')
 
-opts.add_argument('-algorithm', type = str, choices = ['cubic', 'bilinear', 'nearest'], default = 'cubic',
-	help = 'Resampling algorithm')
-
-opts.add_argument('-x0', type = float, required = False, default = 0.0,
+opts.add_argument('-x0', type = float, default = 0.0,
 	help = 'Make x coords relative to this value')
 
-opts.add_argument('-y0', type = float, required = False, default = 0.0,
+opts.add_argument('-y0', type = float, default = 0.0,
 	help = 'Make y coords relative to this value')
 
-opts.add_argument('-z0', type = float, required = False, default = 0.0,
+opts.add_argument('-z0', type = float, default = 0.0,
 	help = 'Make z coords relative to this value')
+
+opts.add_argument('-reorder', type = str, required = False, default = 'xyz',
+	help = 'Reorder string for axes in output')
+
+#
+# Parse arguments and print some user information
+#
 
 if len(sys.argv)<2:
 	parser.parse_args([sys.argv[0], '-h'])
 
 args = parser.parse_args()
-
-if args.resample != None:
-	gti = geotiff.Interpolator(args.gtiff, scale=args.resample, algorithm=args.algorithm)
-else:
-	gti = geotiff.Interpolator(args.gtiff)
-
-Rx, Ry = gti.Lx/gti.Nx, gti.Ly/gti.Ny
-min_z, max_z = gti.data.min(), gti.data.max()
-Lz = float(max_z-min_z)
+gti = geotiff.Interpolator(args.gtiff)
 
 print()
 print(f'Run at: {time.asctime()}')
 print(f'Run as: {" ".join(sys.argv)}')
+
+min_z, max_z = gti.data.min(), gti.data.max()
+
 print()
-print(f'Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.top}')
-print(f'Dims: {gti.Nx} x {gti.Ny} ; Resolution: {Rx} x {Ry}')
-print(f'Z range is apparently {min_z} to {max_z}')
+print(f'GeoTIFF: {args.gtiff}')
+print(f'  Bounds: {gti.bnd.left},{gti.bnd.bottom} -> {gti.bnd.right},{gti.bnd.top}')
+print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {gti.Lx/gti.Nx} x {gti.Ly/gti.Ny}')
+print(f'  Z range is apparently {min_z} to {max_z}')
 
-if args.resample != None:
-	print(f'Resampled to {args.resample} ({args.algorithm}); {gti.Nx_}x{gti.Ny_} => {gti.Nx}x{gti.Ny}')
+print()
+print(f'{args.n_samples_x} samples on global domain x (longitudinal) axis')
+print(f'{args.n_samples_y} samples on global domain y (latitudinal) axis')
 
+#
 # No z scaling specified? Scale to smaller of x or y span
+#
+
 if args.z_scale == None:
-	z_scale = min(gti.Lx,gti.Ly) / Lz
+	z_scale = min(gti.Lx,gti.Ly) / float(max_z-min_z)
 	print(f'Calculated z_scale as {z_scale} from smallest existing dataset dimension ...')
 else:
 	z_scale = args.z_scale
@@ -99,35 +103,9 @@ else:
 print()
 
 #
-# Filter if needed, save as Wavefront .obj
-# https://en.wikipedia.org/wiki/Wavefront_.obj_file
+# Write material file, if needed
 #
 
-top, left = gti.bnd.top, gti.bnd.left
-
-filtered = None
-
-# Filter points against quadrilateral
-if args.filter != None:
-
-	# Four points define filtering quadrilateral; reverse lat,lon to get x,y
-	qa = [ args.filter[1], args.filter[0] ]
-	qb = [ args.filter[3], args.filter[2] ]
-	qc = [ args.filter[5], args.filter[4] ]
-	qd = [ args.filter[7], args.filter[6] ]
-
-	filtered = [] # (row,col) tuples for points that pass filtering
-
-	for row in range(gti.Ny):
-		y = top - row*Ry
-		for col in range(gti.Nx):
-			x = left + col*Rx
-			if inside_quadrilateral(qa, qb, qc, qd, (x,y)):
-				filtered.append( (row,col) )
-
-	print(f'{len(filtered)}/{gti.Ny*gti.Nx} points passed filtering ({(100.0*len(filtered))/(gti.Ny*gti.Nx):.3} %).')
-
-# Write material file, if needed
 if args.texture != None:
 	print('Writing material file...')
 	f = open(args.output + '.mtl', 'w')
@@ -144,102 +122,120 @@ if args.texture != None:
 	print(f'  map_Ns {args.texture}', file=f) # specular highlight texture
 	f.close()
 
-# Write .obj file
+#
+# Write .obj file, including reference to material file if needed
+#
+
 print('Writing .obj file...')
 f = open(args.output + '.obj', 'w')
 
-# Include material in obj file, if needed
 if args.texture != None:
 	print(f'mtllib {args.output + ".mtl"}', file=f)
 	print(f'usemtl Default', file=f)
 
-# Vertex positions
+#
+# Generate .obj file
+#
+
 print('  vertex positions...')
-x0, y0, z0 = args.x0, args.y0, args.z0
-if filtered != None:
-	for (row,col) in filtered:
-		y = top - row*Ry
-		x = left + col*Rx
-		z = (gti.data[row][col] - min_z) * z_scale # relative to lowest z point in data
-		x_, y_, z_ = x-x0, y-y0, z-z0
-		print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
-else:
-	for row in range(gti.Ny):
-		y = top - row*Ry
-		for col in range(gti.Nx):
-			x = left + col*Rx
-			z = (gti.data[row][col] - min_z) * z_scale # relative to lowest z point in data
-			x_, y_, z_ = x-x0, y-y0, z-z0
-			print(f'v {x_:.6f} {y_:.6f} {z_:.6f}', file=f)
 
-# Vertex texture coords, if needed
-if args.texture != None:
-	print('  vertex texture coords...')
-	if filtered != None:
-		for (row,col) in filtered:
-			v = 1.0 - (1.0/gti.Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
-			u = 1.0/gti.Nx * (0.5+col)
-			print(f'vt {u:.6f} {v:.6f}', file=f)
+x0, y0, z0 = args.x0, args.y0, args.z0 # to set local origin, if specified
+
+# Global domain information (i.e., from entire GeoTiff) in CAPITAL LATTERS
+
+NX, NY = args.n_samples_x, args.n_samples_y # discrete sampling points on entire domain
+
+LON0, LON1 = gti.bnd.left, gti.bnd.right
+LAT0, LAT1 = gti.bnd.bottom, gti.bnd.top
+LX, LY = LON1-LON0, LAT1-LAT0
+
+# Local domain information (i.e., from local satellite image) in lower case letters
+
+lat0, lat1 = args.lat[0], args.lat[1]
+lon0, lon1 = args.lon[0], args.lon[1]
+lx, ly = lon1-lon0, lat1-lat0
+
+# Start and end columns into discretized GLOBAL domain that cover the
+# local region. Int truncation ensures we encompass the start point,
+# +1 to the end column to ensure we encompass end points. 
+
+col0 = int( NX * (lon0-LON0)/LX )
+col1 = int( NX * (lon1-LON0)/LX ) + 1
+
+row0 = int( NY * (lat0-LAT0)/LY )
+row1 = int( NY * (lat1-LAT0)/LY ) + 1
+
+# Estimate conversion from degs to metres using central latitude. This is not
+# formally correct, as the longitudinal (i.e., x) scaling changes with
+# latitude (y)!
+dLat_degs_per_m, dLon_degs_per_m = latlon_degs_per_m((lat0+lat1)/2)
+dLat_m_per_deg = 1.0/dLat_degs_per_m
+dLon_m_per_deg = 1.0/dLon_degs_per_m
+
+#
+# Determine axis mapping
+#
+
+axis_order, axis_id = [0,1,2], {'x': 0, 'y': 1, 'z': 2}
+
+if len(args.reorder) != 3:
+		print(f'Bad axis remap string "{args.reorder}"')
+		sys.exit(-1)
+
+for i,axis in enumerate(args.reorder):
+	if axis in axis_id: axis_order[i] = axis_id[axis]
 	else:
-		for row in range(gti.Ny):
-			v = 1.0 - (1.0/gti.Ny * (0.5+row)) # pixel center. Note: v=0 is last texture row, not first
-			for col in range(gti.Nx):
-				u = 1.0/gti.Nx * (0.5+col)
-				print(f'vt {u:.6f} {v:.6f}', file=f)
+		print(f'Unknown axis identifier "{axis}"')
+		sys.exit(-1)
 
+#
+# Generate vertex positions
+#
+# Note; we build the rows of vertices for the geometry from the "bottom" to
+# the "top" of the domain, so our u,v texture coords are the same (i.e., v in
+# u,v is relative to the bottom of the image)
+#
+
+x_idx, y_idx, z_idx = axis_order
+
+clamp = lambda x, x0, x1: min(max(x0,x),x1)
+
+for row in range(row0,row1):
+	y = clamp(LAT0 + row * LY/NY, lat0, lat1) # clamp global y pos onto local bounds
+
+	for col in range(col0,col1):
+		x = clamp(LON0 + col * LX/NX, lon0, lon1) # clamp global x pos onto local bounds
+
+		z = gti.interpolate(x, lat1-(y-lat0))
+
+		r = ( (x-x0)*dLon_m_per_deg, (y-y0)*dLat_m_per_deg, float(z-z0)*z_scale )
+		print(f'v {r[x_idx]:.6f} {r[y_idx]:.6f} {r[z_idx]:.6f}', file=f)
+
+		if (args.texture != None):
+			# local position => normalized u,v coords into texture
+			u, v = (x-lon0)/lx, (y-lat0)/ly # y-lat0 as v=0 is texture bottom
+			print(f'vt {u:.6f} {v:.6f}', file=f)
+
+#
 # Triangular faces, including texture coords if needed
+#
+
 print('  faces...')
-if filtered != None:
+for row in range((row1-row0)-1):
+	for col in range((col1-col0)-1):
+		a = (row*(col1-col0)) + col
+		b = a+1
+		c = ((row+1)*(col1-col0)) + col
+		d = c+1
 
-	# idx: map filtered indices into UNIT BASED vertex indices in obj file
-	idx = {}
-	for i,(row,col) in enumerate(filtered):
-		idx[row*Nx + col] = i+1
+		i1, j1, k1 = a+1, b+1, c+1 # triangle 1
+		i2, j2, k2 = d+1, c+1, b+1 # triangle 2
 
-	for row in range(gti.Ny-1):
-		for col in range(gti.Nx-1):
-			a = (row*gti.Nx) + col
-			b = a+1
-			c = ((row+1)*gti.Nx) + col
-			d = c+1
-
-			# Get actual indices (unit based) if passed filter, else 0
-			a = idx[a] if a in idx else 0
-			b = idx[b] if b in idx else 0
-			c = idx[c] if c in idx else 0
-			d = idx[d] if d in idx else 0
-
-			# write triangle 1 if all points valid
-			if ((a>0) and (b>0) and (c>0)):
-				i, j, k = c, b, a
-				if args.texture != None:
-					print(f'f {i}/{i} {j}/{j} {k}/{k}', file=f)
-				else:
-					print(f'f {i} {j} {k}', file=f)
-
-			# write triangle 2 if all points valid
-			if ((b>0) and (c>0) and (d>0)):
-				i, j, k = b, c, d
-				if args.texture != None:
-					print(f'f {i}/{i} {j}/{j} {k}/{k}', file=f)
-				else:
-					print(f'f {i} {j} {k}', file=f)
-else:
-	for row in range(gti.Ny-1):
-		for col in range(gti.Nx-1):
-			a = (row*gti.Nx) + col
-			b = a+1
-			c = ((row+1)*gti.Nx) + col
-			d = c+1
-
-			i1, j1, k1 = c+1, b+1, a+1 # triangle 1
-			i2, j2, k2 = b+1, c+1, d+1 # triangle 2
-
-			if args.texture != None:
-				print(f'f {i1}/{i1} {j1}/{j1} {k1}/{k1}', file=f)
-				print(f'f {i2}/{i2} {j2}/{j2} {k2}/{k2}', file=f)
-			else:
-				print(f'f {i1} {j1} {k1}', file=f)
-				print(f'f {i2} {j2} {k2}', file=f)
+		if args.texture != None:
+			print(f'f {i1}/{i1} {j1}/{j1} {k1}/{k1}', file=f)
+			print(f'f {i2}/{i2} {j2}/{j2} {k2}/{k2}', file=f)
+		else:
+			print(f'f {i1} {j1} {k1}', file=f)
+			print(f'f {i2} {j2} {k2}', file=f)
 
 print('Done.')
