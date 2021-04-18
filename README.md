@@ -244,7 +244,7 @@ Writing .obj file...
 Done.
 ```
 
-A scaling can be applied to the elevations in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
+A scaling can be applied to the elevation data in order to avoid the `z` dimension dominating the model; as vertex coordinates along the ground plane are written as latitude and longitude values (in degrees), care is required to prevent the `z` axis data (elevation, in metres) being wildly larger than the other axes.
 
 ## `estimate_spans.py`
 
