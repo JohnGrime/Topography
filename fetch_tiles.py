@@ -207,6 +207,7 @@ print(f'Downloading...')
 # Import Python Imaging Library (PIL), Pillow, or equivalent
 if args.combine:
 	from PIL import Image
+	Image.MAX_IMAGE_PIXELS = None # careful; only for trusted sources!
 	combined = Image.new("RGB", (nx_tile*tile_size, ny_tile*tile_size))
 
 # Download tile sets, combining (if needed) into a single image as we go
