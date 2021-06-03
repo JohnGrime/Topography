@@ -37,11 +37,11 @@ opts.add_argument('-lat', required = True, type = float, nargs = 2,
 opts.add_argument('-lon', required = True, type = float, nargs = 2,
 	help = 'Min and max longitude in degrees (-180 to +180, positive is east')
 
-opts.add_argument('-n_samples_x', type = int, required = True,
-	help = 'Number of samples on x (longitudinal) axis')
+opts.add_argument('-n_samples_x', type = int,
+	help = 'Number of samples on x (longitudinal) axis; if not specified, taken from GeoTIFF')
 
-opts.add_argument('-n_samples_y', type = int, required = True,
-	help = 'Number of samples on y (latitudinal axis')
+opts.add_argument('-n_samples_y', type = int,
+	help = 'Number of samples on y (latitudinal axis; if not specified, taken from GeoTIFF')
 
 opts.add_argument('-texture', type = str,
 	help = 'Texture file (triggers use of texture coords etc in output file)')
@@ -61,7 +61,7 @@ opts.add_argument('-y0', type = float, default = 0.0,
 opts.add_argument('-z0', type = float, default = 0.0,
 	help = 'Make z coords relative to this value')
 
-opts.add_argument('-reorder', type = str, required = False, default = 'xyz',
+opts.add_argument('-reorder', type = str, default = 'xyz',
 	help = 'Reorder string for axes in output')
 
 #
@@ -87,8 +87,10 @@ print(f'  Dims: {gti.Nx} x {gti.Ny} ; Resolution: {gti.Lx/gti.Nx} x {gti.Ly/gti.
 print(f'  Z range is apparently {min_z} to {max_z}')
 
 print()
-print(f'{args.n_samples_x} samples on global domain x (longitudinal) axis')
-print(f'{args.n_samples_y} samples on global domain y (latitudinal) axis')
+if (args.n_samples_x != None):
+	print(f'{args.n_samples_x} samples on global domain x (longitudinal) axis')
+if (args.n_samples_y != None):
+	print(f'{args.n_samples_y} samples on global domain y (latitudinal) axis')
 
 #
 # No z scaling specified? Scale to smaller of x or y span
@@ -142,8 +144,9 @@ print('  vertex positions...')
 x0, y0, z0 = args.x0, args.y0, args.z0 # to set local origin, if specified
 
 # Global domain information (i.e., from entire GeoTiff) in CAPITAL LATTERS
-
-NX, NY = args.n_samples_x, args.n_samples_y # discrete sampling points on entire domain
+NX, NY = gti.Nx, gti.Ny
+if args.n_samples_x != None: NX = args.n_samples_x
+if args.n_samples_y != None: NY = args.n_samples_y
 
 LON0, LON1 = gti.bnd.left, gti.bnd.right
 LAT0, LAT1 = gti.bnd.bottom, gti.bnd.top
